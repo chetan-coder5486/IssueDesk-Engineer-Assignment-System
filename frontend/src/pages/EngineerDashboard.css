@@ -1,0 +1,126 @@
+/* JetBrains Mono font - tech aesthetic */
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+html, body, #root {
+  height: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden; /* optional */
+  background: #080B1A; /* space theme */
+    font-family: 'JetBrains Mono', monospace;
+}
+
+
+:root{
+  --bg:#060612;
+  --panel:#0f1724;
+  --neon-cyan:#00E6FF;
+  --neon-purple:#B54CFF;
+  --muted:#8B95A6;
+}
+
+/* page frame */
+.pr-app{ position:relative; min-height:100vh; font-family: 'JetBrains Mono', monospace; color:#dfe9ff; }
+.pr-stars{
+  position:fixed; inset:0; z-index:0;
+  background:
+    radial-gradient(circle at 10% 20%, rgba(181,76,255,0.08) 0, transparent 10%),
+    radial-gradient(circle at 80% 80%, rgba(0,198,255,0.06) 0, transparent 12%),
+    linear-gradient(180deg,#050612 0%, #0b0e1a 60%, #120a22 100%);
+  overflow:hidden;
+  filter: contrast(120%);
+}
+/* subtle tiny stars */
+.pr-stars::after{
+  content:""; position:absolute; inset:0; background-image:
+  radial-gradient(1px 1px at 10% 10%, #fff 50%, transparent 51%),
+  radial-gradient(1px 1px at 20% 60%, #fff 50%, transparent 51%),
+  radial-gradient(1px 1px at 45% 20%, #fff 50%, transparent 51%),
+  radial-gradient(1px 1px at 70% 35%, #fff 50%, transparent 51%),
+  radial-gradient(1px 1px at 85% 80%, #fff 50%, transparent 51%);
+  opacity:0.12; mix-blend-mode:screen;
+}
+
+/* content frame */
+.pr-frame{
+  position:relative; z-index:5;
+  margin:48px auto;
+  max-width:100vw;
+  min-height:620px;
+  border-radius:18px;
+  box-shadow: 0 0 80px rgba(181,76,255,0.14), inset 0 1px 0 rgba(255,255,255,0.03);
+  background: linear-gradient(90deg, rgba(15,23,36,0.88) 0%, rgba(12,18,30,0.92) 100%);
+  display:flex;
+  overflow:hidden;
+}
+
+/* sidebar */
+.pr-sidebar{ width:300px; padding:30px; border-right:1px solid rgba(181,76,255,0.07); background:linear-gradient(180deg,rgba(10,12,20,0.9),rgba(10,8,16,0.7)); }
+.pr-brand{ display:flex; gap:14px; align-items:center; margin-bottom:20px; }
+.pr-logo{ width:56px; height:56px; border-radius:14px; background:linear-gradient(180deg,var(--neon-cyan),var(--neon-purple)); display:flex; align-items:center; justify-content:center; box-shadow:0 6px 18px rgba(181,76,255,0.16); font-weight:900; color:#020814; }
+.pr-title{ font-size:20px; font-weight:900; color:#fff; letter-spacing:1px; }
+.pr-sub{ color:var(--neon-cyan); font-size:13px; margin-top:-4px; }
+
+/* nav */
+.pr-nav{ margin-top:24px; display:flex; flex-direction:column; gap:8px; }
+.pr-navlink{ display:flex; gap:12px; align-items:center; padding:12px 14px; border-radius:10px; color:#aab6d9; text-decoration:none; font-weight:600; }
+.pr-navlink.active{ background:linear-gradient(90deg, rgba(0,198,255,0.08), rgba(181,76,255,0.06)); color:#fff; box-shadow:0 6px 22px rgba(181,76,255,0.06); border-left:3px solid var(--neon-cyan); }
+.pr-navdot{ width:10px; height:10px; border-radius:50%; background:linear-gradient(90deg,var(--neon-cyan),var(--neon-purple)); box-shadow:0 0 8px rgba(0,198,255,0.2); }
+
+/* main area */
+.pr-main{ flex:1; padding:26px 28px; overflow:auto; }
+.pr-topbar{ display:flex; justify-content:space-between; align-items:center; color: #cde7ff; margin-bottom:18px; border-bottom:1px solid rgba(255,255,255,0.03); padding-bottom:12px; }
+.pr-topbar .pr-pill{ background: rgba(0,0,0,0.25); padding:6px 10px; border-radius:8px; color:var(--neon-cyan); font-weight:700; }
+
+/* content layout */
+.pr-content{ padding-top:18px; }
+
+/* cards */
+.card{ background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); border-radius:12px; padding:18px; box-shadow: 0 8px 30px rgba(11,4,25,0.5); border:1px solid rgba(181,76,255,0.06); }
+.pr-grid{ display:grid; grid-template-columns: 1fr 360px; gap:20px; align-items:start; }
+.pr-grid-2col{ display:flex; gap:20px; flex-direction:column; }
+
+/* welcome & widgets */
+.pr-welcome{ padding:28px; border-radius:12px; background:linear-gradient(180deg, rgba(181,76,255,0.02), rgba(0,198,255,0.02)); box-shadow: inset 0 0 20px rgba(0,0,0,0.15); }
+.pr-widgets{ display:flex; gap:12px; margin-top:18px; }
+.metric{ flex:1; padding:12px; border-radius:10px; border:1px solid rgba(255,255,255,0.03); background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); }
+.metric-title{ font-size:12px; color:var(--muted); letter-spacing:1px; }
+.metric-value{ font-size:22px; font-weight:800; margin-top:6px; }
+
+/* panel layout */
+.pr-panel{ padding:22px; }
+.panel-row{ display:flex; gap:18px; align-items:flex-start; }
+.panel-left{ flex:1; display:flex; flex-direction:column; gap:18px; }
+.panel-right{ width:380px; display:flex; flex-direction:column; gap:18px; }
+
+/* KPIs */
+.kpi-row{ display:flex; gap:12px; margin-bottom:8px; }
+.kpi{ padding:12px; border-radius:10px; border:1px solid rgba(255,255,255,0.03); min-width:120px; }
+.kpi-label{ font-size:12px; color:var(--muted); }
+.kpi-value{ font-weight:900; font-size:20px; margin-top:6px; }
+
+/* charts */
+.chart-card{ padding:16px; }
+
+/* recent table */
+.recent-table{ width:100%; border-collapse:collapse; }
+.recent-table th{ text-align:left; font-size:13px; color:var(--muted); padding:10px 6px; border:1px solid rgba(181,76,255,0.3); }
+.recent-table td{ padding:12px 6px; color:#d6e7ff; border:1px solid rgba(181,76,255,0.2); }
+.badge{ color:#02121a; padding:6px 8px; border-radius:999px; font-weight:700; display:inline-block; }
+.pbadge{ color:#02121a; padding:6px 8px; border-radius:6px; font-weight:700; display:inline-block; }
+
+/* small helpers */
+.pr-link{ background:none; border:none; color:var(--neon-cyan); text-decoration:underline; padding:8px 12px; cursor:pointer; }
+.pr-quickgrid{ display:flex; gap:8px; margin-top:12px; flex-wrap:wrap; }
+.pr-quick{ padding:12px 16px; border-radius:10px; background:linear-gradient(90deg, rgba(0,198,255,0.06), rgba(181,76,255,0.06)); color:#cfefff; text-decoration:none; }
+
+/* glowy button */
+.pr-btn-glow{ width:100%; padding:12px 14px; border-radius:10px; color:#02121a; font-weight:900; background: linear-gradient(90deg,#00C6FF,#B54CFF); box-shadow: 0 10px 30px rgba(181,76,255,0.12); border:none; cursor:pointer; }
+
+/* responsive */
+@media (max-width: 980px){
+  .pr-frame{ margin:20px; flex-direction:column; width:auto; }
+  .pr-sidebar{ width:100%; display:flex; gap:18px; align-items:center; }
+  .pr-grid{ grid-template-columns: 1fr; }
+  .panel-right{ width:100%; }
+}
