@@ -2,9 +2,15 @@ import React, { useState } from 'react'
 import { createBrowserRouter, RouterProvider } from 'react-router-dom'
 import Login from './pages/Login.jsx'
 import Signup from './pages/Signup.jsx'
-import UserDashboard from './pages/UserDashboardFull.jsx'
+import HeroPage from './pages/HeroPage.jsx'
+import UserDashboard from './pages/UserDashboard.jsx'
+import EngineerDashboard from './pages/EngineerDashboard.jsx'
 
 const appRouter =createBrowserRouter([
+  {
+    path:'/',
+    element:<HeroPage />
+  },
   {
     path:'/login',
     element:<Login />
@@ -14,8 +20,12 @@ const appRouter =createBrowserRouter([
     element:<Signup />
   },
   {
-    path:'/',
+    path:'/user-dashboard',
     element:<UserDashboard />
+  },
+  {
+    path:'/engineer-dashboard',
+    element:<EngineerDashboard />
   }
 ])
 

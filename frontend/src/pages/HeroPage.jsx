@@ -1,5 +1,6 @@
 import React from "react";
 import "./HeroPage.css";
+import { Link } from "react-router-dom";
 
 export default function HeroPage({ onStart }) {
   return (
@@ -13,9 +14,11 @@ export default function HeroPage({ onStart }) {
           Harness cosmic energy, complete missions, and defend the universe.
         </p>
 
+      <Link to="/login">
         <button className="hero-btn" onClick={onStart}>
           ENTER COMMAND CENTER
         </button>
+      </Link>
       </div>
 
       <div className="hero-glow"></div>
