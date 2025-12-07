@@ -1,8 +1,10 @@
+import mongoose from 'mongoose';
+
+
 const TicketSchema = new mongoose.Schema({
   // Identification
   title: { type: String, required: true, index: true }, // Indexed for search
   description: { type: String },
-  location: { type: String }, // e.g., "Command Center - North Wing"
   
   // Categorization (Triggers Assignment Logic)
   category: { type: String, required: true }, 
