@@ -1,9 +1,16 @@
 // App.jsx
 import React from "react";
-import { BrowserRouter as Router, Routes, Route, Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
-  PieChart, Pie, Cell,
-  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer
+  PieChart,
+  Pie,
+  Cell,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
 } from "recharts";
 import "./EngineerDashboard.css";
 /* ---------------------------
@@ -20,27 +27,18 @@ const NEON = {
 
 export default function EngineerDashboardMain() {
   return (
-    <Router>
-      <div className="pr-app">
-        
-        <BackgroundStars />
-        <div className="pr-frame">
-          <Sidebar />
-          <main className="pr-main">
-            <Topbar />
-            <div className="pr-content">
-              <Routes>
-                <Route path="/" element={<Home />} />
-                <Route path="/engineer/home" element={<Home />} />
-                <Route path="/engineer/dashboard" element={<EngineerDashboard />} />
-                <Route path="/engineer/issues" element={<Issues />} />
-                <Route path="/engineer/tools" element={<Tools />} />
-              </Routes>
-            </div>
-          </main>
-        </div>
+    <div className="pr-app">
+      <BackgroundStars />
+      <div className="pr-frame">
+        <Sidebar />
+        <main className="pr-main">
+          <Topbar />
+          <div className="pr-content">
+            <Home />
+          </div>
+        </main>
       </div>
-    </Router>
+    </div>
   );
 }
 
@@ -66,10 +64,9 @@ function Sidebar() {
       </div>
 
       <nav className="pr-nav">
-        <NavLink to="/engineer/home" label="Home" />
-        <NavLink to="/engineer/dashboard" label="Dashboard" active />
-        <NavLink to="/engineer/issues" label="Issues" />
-        <NavLink to="/engineer/tools" label="Tools" />
+        <NavLink to="/engineer-dashboard" label="Dashboard" active />
+        <NavLink to="/engineer-issues" label="Issues" />
+        <NavLink to="/engineer-tools" label="Tools" />
       </nav>
 
       <div className="pr-cta">
@@ -94,7 +91,9 @@ function Topbar() {
   return (
     <div className="pr-topbar">
       <div className="pr-top-left">Command Center</div>
-      <div className="pr-top-right">Zordon Admin • <span className="pr-pill">Engineer</span></div>
+      <div className="pr-top-right">
+        Zordon Admin • <span className="pr-pill">Engineer</span>
+      </div>
     </div>
   );
 }
@@ -119,11 +118,19 @@ function Home() {
       <div className="card pr-links">
         <h3>Quick Access</h3>
         <div className="pr-quickgrid">
-          <Link className="pr-quick" to="/engineer/dashboard">Dashboard →</Link>
-          <Link className="pr-quick" to="/engineer/issues">Issues →</Link>
-          <Link className="pr-quick" to="/engineer/tools">Tools →</Link>
+          <Link className="pr-quick" to="/engineer-dashboard">
+            Dashboard →
+          </Link>
+          <Link className="pr-quick" to="/engineer-issues">
+            Issues →
+          </Link>
+          <Link className="pr-quick" to="/engineer-tools">
+            Tools →
+          </Link>
         </div>
       </div>
+
+      <DashboardView />
     </div>
   );
 }
@@ -132,7 +139,9 @@ function Metric({ title, value, color }) {
   return (
     <div className="metric" style={{ borderColor: color }}>
       <div className="metric-title">{title}</div>
-      <div className="metric-value" style={{ color }}>{value}</div>
+      <div className="metric-value" style={{ color }}>
+        {value}
+      </div>
     </div>
   );
 }
@@ -140,7 +149,7 @@ function Metric({ title, value, color }) {
 /* ---------------------------
    Engineer Dashboard (the main screen)
    --------------------------- */
-function EngineerDashboard() {
+function DashboardView() {
   const donutData = [
     { name: "Pending", value: 11 },
     { name: "In Progress", value: 5 },
@@ -179,8 +188,16 @@ function EngineerDashboard() {
               <h4>Task Distribution</h4>
               <ResponsiveContainer width="100%" height={200}>
                 <PieChart>
-                  <Pie data={donutData} dataKey="value" innerRadius={55} outerRadius={85} paddingAngle={4}>
-                    {donutData.map((entry, i) => <Cell key={i} fill={donutColors[i]} />)}
+                  <Pie
+                    data={donutData}
+                    dataKey="value"
+                    innerRadius={55}
+                    outerRadius={85}
+                    paddingAngle={4}
+                  >
+                    {donutData.map((entry, i) => (
+                      <Cell key={i} fill={donutColors[i]} />
+                    ))}
                   </Pie>
                 </PieChart>
               </ResponsiveContainer>
@@ -193,7 +210,7 @@ function EngineerDashboard() {
                   <XAxis dataKey="level" stroke="#8B95A6" />
                   <YAxis stroke="#8B95A6" />
                   <Tooltip />
-                  <Bar dataKey="count" fill="#B54CFF" radius={[8,8,0,0]} />
+                  <Bar dataKey="count" fill="#B54CFF" radius={[8, 8, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -208,7 +225,9 @@ function KPI({ label, value, accent }) {
   return (
     <div className="kpi" style={{ borderColor: accent }}>
       <div className="kpi-label">{label}</div>
-      <div className="kpi-value" style={{ color: accent }}>{value}</div>
+      <div className="kpi-value" style={{ color: accent }}>
+        {value}
+      </div>
     </div>
   );
 }
@@ -218,29 +237,66 @@ function KPI({ label, value, accent }) {
    --------------------------- */
 function RecentTasks() {
   const rows = [
-    { name: "Develop Product Review System", status: "Pending", priority: "Low", date: "17th Mar 2025" },
-    { name: "Build Feedback Form Module", status: "Pending", priority: "High", date: "17th Mar 2025" },
-    { name: "Implement Notification System", status: "Pending", priority: "Low", date: "17th Mar 2025" },
-    { name: "Migrate Database to MongoDB Atlas", status: "Completed", priority: "Medium", date: "17th Mar 2025" },
+    {
+      name: "Develop Product Review System",
+      status: "Pending",
+      priority: "Low",
+      date: "17th Mar 2025",
+    },
+    {
+      name: "Build Feedback Form Module",
+      status: "Pending",
+      priority: "High",
+      date: "17th Mar 2025",
+    },
+    {
+      name: "Implement Notification System",
+      status: "Pending",
+      priority: "Low",
+      date: "17th Mar 2025",
+    },
+    {
+      name: "Migrate Database to MongoDB Atlas",
+      status: "Completed",
+      priority: "Medium",
+      date: "17th Mar 2025",
+    },
   ];
 
   const badge = (t) => {
-    const map = { Pending: "#B388FF", Completed: "#7ED957", Assigned: "#00E6FF" };
-    return <span className="badge" style={{ background: map[t] || "#8A90FF" }}>{t}</span>;
+    const map = {
+      Pending: "#B388FF",
+      Completed: "#7ED957",
+      Assigned: "#00E6FF",
+    };
+    return (
+      <span className="badge" style={{ background: map[t] || "#8A90FF" }}>
+        {t}
+      </span>
+    );
   };
 
   const pbadge = (p) => {
     const map = { Low: "#7ED957", Medium: "#FFB84D", High: "#FF6B6B" };
-    return <span className="pbadge" style={{ background: map[p] }}>{p}</span>;
+    return (
+      <span className="pbadge" style={{ background: map[p] }}>
+        {p}
+      </span>
+    );
   };
 
   return (
     <table className="recent-table">
       <thead>
-        <tr><th>Name</th><th>Status</th><th>Priority</th><th>Created On</th></tr>
+        <tr>
+          <th>Name</th>
+          <th>Status</th>
+          <th>Priority</th>
+          <th>Created On</th>
+        </tr>
       </thead>
       <tbody>
-        {rows.map((r,i) => (
+        {rows.map((r, i) => (
           <tr key={i}>
             <td>{r.name}</td>
             <td>{badge(r.status)}</td>
@@ -262,7 +318,12 @@ function Issues() {
     <div className="card">
       <h2>Issues</h2>
       <p>Issue list & filters — (placeholder)</p>
-      <button className="pr-link" onClick={() => navigate("/engineer/dashboard")}>Open Dashboard</button>
+      <button
+        className="pr-link"
+        onClick={() => navigate("/engineer/dashboard")}
+      >
+        Open Dashboard
+      </button>
     </div>
   );
 }

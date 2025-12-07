@@ -15,8 +15,8 @@ const UserSchema = new mongoose.Schema({
     // Assignment Logic
     department: {
         type: String,
-        enum: ['TECH_OPS', 'WEAPONS', 'ZORDS', 'MEDICAL', 'None'],
-        default: 'None'
+        enum: ['RED', 'BLUE', 'GREEN', 'YELLOW', 'PINK', 'BLACK'],
+        default: 'RED'
     },
     // Availability for Auto-Assignment
     isOnline: { type: Boolean, default: false },
