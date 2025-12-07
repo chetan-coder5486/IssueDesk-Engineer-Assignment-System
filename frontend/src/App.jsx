@@ -4,6 +4,7 @@ import Login from './pages/Login.jsx'
 import Signup from './pages/Signup.jsx'
 import HeroPage from './pages/HeroPage.jsx'
 import UserDashboard from './pages/UserDashboard.jsx'
+import Navbar from './pages/Navbar.jsx'
 import EngineerDashboard from './pages/EngineerDashboard.jsx'
 
 const appRouter =createBrowserRouter([
@@ -32,7 +33,9 @@ const appRouter =createBrowserRouter([
 function App() {
   return (
     <>
-    <RouterProvider router = {appRouter}/>
+    {/* <RouterProvider router = {appRouter}/> */}
+    <UserDashboard />
+    {/* <Navbar /> */}
     </>
   )
 }
