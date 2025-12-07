@@ -7,6 +7,7 @@ import UserDashboard from './pages/UserDashboard.jsx'
 import Navbar from './pages/Navbar.jsx'
 import EngineerDashboard from './pages/EngineerDashboard.jsx'
 
+
 const appRouter =createBrowserRouter([
   {
     path:'/',
@@ -16,7 +17,7 @@ const appRouter =createBrowserRouter([
     path:'/login',
     element:<Login />
   },
-  {
+    {
     path:'/signup',
     element:<Signup />
   },
