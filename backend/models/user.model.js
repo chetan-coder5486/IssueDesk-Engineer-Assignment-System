@@ -8,7 +8,7 @@ const UserSchema = new mongoose.Schema({
     // RBAC (Role Based Access Control)
     role: {
         type: String,
-        enum: ['RANGER', 'ENGINEER'],
+        enum: ['RANGER', 'ENGINEER', 'ADMIN'],
         default: 'RANGER'
     },
 

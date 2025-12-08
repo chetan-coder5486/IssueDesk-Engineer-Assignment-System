@@ -34,6 +34,14 @@ export default function Navbar() {
       ];
     }
 
+    if (user.role === "ADMIN") {
+      return [
+        { to: "/admin-dashboard", label: "Command Center" },
+        { to: "/admin-dashboard", label: "Assignments" },
+        { to: "/admin-dashboard", label: "Engineers" },
+      ];
+    }
+
     if (user.role === "ENGINEER") {
       return [
         { to: "/engineer-dashboard", label: "Dashboard" },
@@ -70,7 +78,9 @@ export default function Navbar() {
           <Link
             to={
               user
-                ? user.role === "ENGINEER"
+                ? user.role === "ADMIN"
+                  ? "/admin-dashboard"
+                  : user.role === "ENGINEER"
                   ? "/engineer-dashboard"
                   : "/user-dashboard"
                 : "/"

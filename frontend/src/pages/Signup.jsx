@@ -295,6 +295,7 @@ const Signup = () => {
                   >
                     <option value="RANGER">INFANTRY RANGER</option>
                     <option value="ENGINEER">ZORD ENGINEER</option>
+                    <option value="ADMIN">COMMAND ADMIN</option>
                   </select>
                   <div className="absolute inset-y-0 right-0 flex items-center px-4 pointer-events-none text-gray-500">
                     <svg

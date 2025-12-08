@@ -1,0 +1,180 @@
+import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
+
+const API_BASE_URL = "http://localhost:8000";
+
+// Helper to parse response
+const parseResponse = async (response) => {
+    try {
+        return await response.json();
+    } catch {
+        return {};
+    }
+};
+
+// Fetch all engineers
+export const fetchEngineers = createAsyncThunk(
+    "admin/fetchEngineers",
+    async (_, { rejectWithValue }) => {
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/v1/user/engineers`, {
+                method: "GET",
+                headers: { "Content-Type": "application/json" },
+                credentials: "include",
+            });
+            const data = await parseResponse(response);
+            if (!response.ok) {
+                return rejectWithValue(data?.message || "Failed to fetch engineers");
+            }
+            return data?.engineers || [];
+        } catch (error) {
+            return rejectWithValue(error?.message || "Network error");
+        }
+    }
+);
+
+// Fetch all users
+export const fetchAllUsers = createAsyncThunk(
+    "admin/fetchAllUsers",
+    async (_, { rejectWithValue }) => {
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/v1/user/users`, {
+                method: "GET",
+                headers: { "Content-Type": "application/json" },
+                credentials: "include",
+            });
+            const data = await parseResponse(response);
+            if (!response.ok) {
+                return rejectWithValue(data?.message || "Failed to fetch users");
+            }
+            return data?.users || [];
+        } catch (error) {
+            return rejectWithValue(error?.message || "Network error");
+        }
+    }
+);
+
+// Fetch dashboard stats
+export const fetchDashboardStats = createAsyncThunk(
+    "admin/fetchDashboardStats",
+    async (_, { rejectWithValue }) => {
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/v1/user/dashboard-stats`, {
+                method: "GET",
+                headers: { "Content-Type": "application/json" },
+                credentials: "include",
+            });
+            const data = await parseResponse(response);
+            if (!response.ok) {
+                return rejectWithValue(data?.message || "Failed to fetch stats");
+            }
+            return data?.stats || {};
+        } catch (error) {
+            return rejectWithValue(error?.message || "Network error");
+        }
+    }
+);
+
+// Update engineer status
+export const updateEngineer = createAsyncThunk(
+    "admin/updateEngineer",
+    async ({ userId, workloadScore, isOnline }, { rejectWithValue }) => {
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/v1/user/engineers/${userId}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                credentials: "include",
+                body: JSON.stringify({ workloadScore, isOnline }),
+            });
+            const data = await parseResponse(response);
+            if (!response.ok) {
+                return rejectWithValue(data?.message || "Failed to update engineer");
+            }
+            return data?.user;
+        } catch (error) {
+            return rejectWithValue(error?.message || "Network error");
+        }
+    }
+);
+
+const adminSlice = createSlice({
+    name: "admin",
+    initialState: {
+        engineers: [],
+        users: [],
+        stats: {
+            totalUsers: 0,
+            totalEngineers: 0,
+            onlineEngineers: 0,
+            totalTickets: 0,
+            openTickets: 0,
+            assignedTickets: 0,
+            inProgressTickets: 0,
+            resolvedTickets: 0,
+            criticalTickets: 0,
+            breachedTickets: 0,
+            ticketsByPriority: [],
+            ticketsByDepartment: []
+        },
+        loading: false,
+        error: null,
+    },
+    reducers: {
+        clearAdminError: (state) => {
+            state.error = null;
+        },
+    },
+    extraReducers: (builder) => {
+        builder
+            // Fetch engineers
+            .addCase(fetchEngineers.pending, (state) => {
+                state.loading = true;
+                state.error = null;
+            })
+            .addCase(fetchEngineers.fulfilled, (state, action) => {
+                state.loading = false;
+                state.engineers = action.payload;
+            })
+            .addCase(fetchEngineers.rejected, (state, action) => {
+                state.loading = false;
+                state.error = action.payload;
+            })
+            // Fetch all users
+            .addCase(fetchAllUsers.pending, (state) => {
+                state.loading = true;
+                state.error = null;
+            })
+            .addCase(fetchAllUsers.fulfilled, (state, action) => {
+                state.loading = false;
+                state.users = action.payload;
+            })
+            .addCase(fetchAllUsers.rejected, (state, action) => {
+                state.loading = false;
+                state.error = action.payload;
+            })
+            // Fetch dashboard stats
+            .addCase(fetchDashboardStats.pending, (state) => {
+                state.loading = true;
+                state.error = null;
+            })
+            .addCase(fetchDashboardStats.fulfilled, (state, action) => {
+                state.loading = false;
+                state.stats = action.payload;
+            })
+            .addCase(fetchDashboardStats.rejected, (state, action) => {
+                state.loading = false;
+                state.error = action.payload;
+            })
+            // Update engineer
+            .addCase(updateEngineer.fulfilled, (state, action) => {
+                const updated = action.payload;
+                if (updated) {
+                    state.engineers = state.engineers.map((e) =>
+                        e._id === updated._id ? updated : e
+                    );
+                }
+            });
+    },
+});
+
+export const { clearAdminError } = adminSlice.actions;
+export default adminSlice.reducer;

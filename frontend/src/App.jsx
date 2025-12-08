@@ -5,6 +5,7 @@ import Signup from "./pages/Signup.jsx";
 import HeroPage from "./pages/HeroPage.jsx";
 import UserDashboard from "./pages/UserDashboard.jsx";
 import EngineerDashboard from "./pages/EngineerDashboard.jsx";
+import AdminDashboard from "./pages/AdminDashboard.jsx";
 
 const appRouter = createBrowserRouter([
   {
@@ -26,6 +27,10 @@ const appRouter = createBrowserRouter([
   {
     path: "/engineer-dashboard",
     element: <EngineerDashboard />,
+  },
+  {
+    path: "/admin-dashboard",
+    element: <AdminDashboard />,
   },
 ]);
 
