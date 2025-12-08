@@ -1,6 +1,7 @@
 import User from "../models/user.model.js";
 import Ticket from "../models/ticket.model.js";
 import { calculateDueDate, isBreached } from "../models/sla.model.js";
+import { sendMail } from "../utils/email.js";
 
 export const createTicket = async (req, res) => {
     try {
@@ -167,6 +168,30 @@ export const assignTicket = async (req, res) => {
         // Populate for response
         await ticket.populate('reporter assignee');
 
+        // send email notifications
+        try {
+            // send to assignee
+            if (assignee.email) {
+                await sendMail({
+                    to: assignee.email,
+                    subject: `New assignment: ${ticket.title}`,
+                    text: `You have been assigned a new ticket: ${ticket.title} - Due: ${ticket.dueDate}`,
+                    html: `<p>You have been assigned a new ticket: <strong>${ticket.title}</strong></p><p>Due: ${ticket.dueDate}</p>`
+                });
+            }
+            // send to reporter
+            if (ticket.reporter && ticket.reporter.email) {
+                await sendMail({
+                    to: ticket.reporter.email,
+                    subject: `Engineer assigned to your ticket: ${ticket.title}`,
+                    text: `Your ticket '${ticket.title}' has been assigned to ${assignee.name} (${assignee.email}).`,
+                    html: `<p>Your ticket '<strong>${ticket.title}</strong>' has been assigned to <strong>${assignee.name}</strong> (${assignee.email}).</p>`
+                });
+            }
+        } catch (mailErr) {
+            console.error('Email send error:', mailErr);
+        }
+
         return res.status(200).json({ message: 'Ticket assigned successfully', ticket });
     } catch (error) {
         return res.status(500).json({ message: 'Server error', error: error.message });
@@ -188,6 +213,47 @@ export const deleteTicket = async (req, res) => {
 
         await Ticket.findByIdAndDelete(ticketId);
         return res.status(200).json({ message: 'Ticket deleted successfully' });
+    } catch (error) {
+        return res.status(500).json({ message: 'Server error', error: error.message });
+    }
+}
+
+export const sendDeadlineNotifications = async (req, res) => {
+    try {
+        // configurable window (hours) from request or default 24 hours
+        const hoursWindow = req.body.hours || 24;
+        const now = new Date();
+        const windowEnd = new Date(now.getTime() + hoursWindow * 60 * 60 * 1000);
+
+        // Find tickets with dueDate within (now, windowEnd), not resolved/closed, has assignee, and not already notified
+        const tickets = await Ticket.find({
+            assignee: { $ne: null },
+            status: { $nin: ['RESOLVED', 'CLOSED'] },
+            dueDate: { $gte: now, $lte: windowEnd },
+            deadlineNotified: { $ne: true }
+        }).populate('assignee reporter');
+
+        const results = [];
+        for (const t of tickets) {
+            if (t.assignee && t.assignee.email) {
+                try {
+                    const subject = `Reminder: Time is running out for ticket '${t.title}'`;
+                    const text = `The ticket '${t.title}' is due on ${t.dueDate}. Please complete before the deadline.`;
+                    const html = `<p>The ticket '<strong>${t.title}</strong>' is due on <strong>${t.dueDate}</strong>. Please complete before the deadline.</p>`;
+                    const info = await sendMail({ to: t.assignee.email, subject, text, html });
+                    results.push({ ticketId: t._id, to: t.assignee.email, info });
+
+                    // mark notified to prevent duplicates
+                    t.deadlineNotified = true;
+                    await t.save();
+                } catch (err) {
+                    console.error('Failed sending deadline mail for ticket', t._id, err);
+                    results.push({ ticketId: t._id, error: err.message });
+                }
+            }
+        }
+
+        return res.status(200).json({ message: 'Deadline notifications processed', results });
     } catch (error) {
         return res.status(500).json({ message: 'Server error', error: error.message });
     }

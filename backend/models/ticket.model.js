@@ -30,6 +30,8 @@ const TicketSchema = new mongoose.Schema({
   slaPolicyId: { type: mongoose.Schema.Types.ObjectId, ref: 'SLA' },
   dueDate: { type: Date }, // Calculated based on Priority + SLA Policy
   breached: { type: Boolean, default: false },
+  // flag to avoid sending duplicate deadline warning emails
+  deadlineNotified: { type: Boolean, default: false },
   
   // Meta
   tags: [{ type: String }] // e.g., ["Hardware", "Fire-Hazard"]

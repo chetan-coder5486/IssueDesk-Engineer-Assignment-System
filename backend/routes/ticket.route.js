@@ -8,6 +8,7 @@ import {
     updateTicketStatus,
     assignTicket,
     deleteTicket,
+    sendDeadlineNotifications,
 } from '../controllers/ticket.controller.js';
 import isAuthenticated from '../middlewares/isAuthenticated.js';
 
@@ -36,6 +37,9 @@ router.patch('/:id/status', updateTicketStatus);
 
 // Assign ticket to an engineer
 router.patch('/:id/assign', assignTicket);
+
+// Endpoint to trigger deadline reminder emails (body: { hours?: number })
+router.post('/notify-deadlines', sendDeadlineNotifications);
 
 // Delete ticket
 router.delete('/:id', deleteTicket);
