@@ -1,37 +1,14 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
-
-const API_BASE_URL = import.meta.env.USER_API_ENDPOINT || 'http://localhost:8000';
-
-const parseResponse = async (response) => {
-    try {
-        return await response.json();
-    } catch (error) {
-        return {};
-    }
-};
+import api from '../utils/api';
 
 export const loginUser = createAsyncThunk(
     'auth/loginUser',
     async ({ email, password }, { rejectWithValue }) => {
         try {
-            const response = await fetch(`${API_BASE_URL}/api/v1/user/login`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                credentials: 'include',
-                body: JSON.stringify({ email, password }),
-            });
-
-            const data = await parseResponse(response);
-            if (!response.ok) {
-                const message = data?.message || 'Failed to login. Please try again.';
-                return rejectWithValue(message);
-            }
-
+            const { data } = await api.post('/api/v1/user/login', { email, password });
             return data?.user || null;
         } catch (error) {
-            return rejectWithValue(error?.message || 'Unable to connect to the server.');
+            return rejectWithValue(error.response?.data?.message || 'Failed to login. Please try again.');
         }
     }
 );
@@ -40,24 +17,10 @@ export const signupUser = createAsyncThunk(
     'auth/signupUser',
     async ({ name, email, password, confirmPassword, role, department }, { rejectWithValue }) => {
         try {
-            const response = await fetch(`${API_BASE_URL}/api/v1/user/signup`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                credentials: 'include',
-                body: JSON.stringify({ name, email, password, confirmPassword, role, department }),
-            });
-
-            const data = await parseResponse(response);
-            if (!response.ok) {
-                const message = data?.message || 'Failed to signup. Please try again.';
-                return rejectWithValue(message);
-            }
-
+            const { data } = await api.post('/api/v1/user/signup', { name, email, password, confirmPassword, role, department });
             return data?.user || null;
         } catch (error) {
-            return rejectWithValue(error?.message || 'Unable to connect to the server.');
+            return rejectWithValue(error.response?.data?.message || 'Failed to signup. Please try again.');
         }
     }
 );
@@ -66,20 +29,10 @@ export const logoutUser = createAsyncThunk(
     'auth/logoutUser',
     async (_, { rejectWithValue }) => {
         try {
-            const response = await fetch(`${API_BASE_URL}/api/v1/user/logout`, {
-                method: 'GET',
-                credentials: 'include',
-            });
-
-            if (!response.ok && response.status !== 204) {
-                const data = await parseResponse(response);
-                const message = data?.message || 'Failed to logout. Please try again.';
-                return rejectWithValue(message);
-            }
-
+            await api.get('/api/v1/user/logout');
             return true;
         } catch (error) {
-            return rejectWithValue(error?.message || 'Unable to connect to the server.');
+            return rejectWithValue(error.response?.data?.message || 'Failed to logout. Please try again.');
         }
     }
 );
@@ -118,6 +71,12 @@ const authSlice = createSlice({
         },
         setSignupError(state, action) {
             state.signupError = action.payload;
+        },
+        // Force logout when session expires (refresh token fails)
+        forceLogout(state) {
+            state.user = null;
+            state.loginStatus = 'idle';
+            state.loginError = 'Session expired. Please log in again.';
         },
     },
     extraReducers: (builder) => {
@@ -169,6 +128,7 @@ export const {
     resetLogoutStatus,
     resetLoginStatus,
     setSignupError,
+    forceLogout,
 } = authSlice.actions;
 
 export default authSlice.reducer;

@@ -8,7 +8,7 @@ const UserSchema = new mongoose.Schema({
     // RBAC (Role Based Access Control)
     role: {
         type: String,
-        enum: ['RANGER', 'ENGINEER'],
+        enum: ['RANGER', 'ENGINEER', 'ADMIN'],
         default: 'RANGER'
     },
 
@@ -18,6 +18,7 @@ const UserSchema = new mongoose.Schema({
         enum: ['RED', 'BLUE', 'GREEN', 'YELLOW', 'PINK', 'BLACK'],
         default: 'RED'
     },
+    skills: [{ type: String }], // Skills for ticket matching
     // Availability for Auto-Assignment
     isOnline: { type: Boolean, default: false },
     workloadScore: { type: Number, default: 0 }, // Current active tickets count

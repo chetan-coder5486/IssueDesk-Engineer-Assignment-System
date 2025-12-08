@@ -11,7 +11,7 @@ const isAuthenticated = (req, res, next) => {
         }
 
         const decoded = jwt.verify(accessToken, process.env.ACCESS_TOKEN_SECRET);
-        req.userId = decoded.id;
+        req.user = { id: decoded.id };
         return next();
     } catch (error) {
         console.error('Authentication error:', error);

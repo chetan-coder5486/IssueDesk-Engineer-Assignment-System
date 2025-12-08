@@ -1,456 +1,661 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from "react";
+import { useSelector, useDispatch } from "react-redux";
+import { useNavigate } from "react-router-dom";
+import { logoutUser } from "../store/authSlice.js";
 import {
-  BellIcon,
-  SparklesIcon,
-  ChartBarIcon,
-  ClockIcon,
-  UsersIcon,
-  ExclamationIcon,
-  BadgeCheckIcon,
-} from '@heroicons/react/outline';
-import { FiPlus, FiMessageCircle } from 'react-icons/fi';
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
+  fetchMyTickets,
+  createTicket,
+  resetCreateStatus,
+} from "../store/ticketSlice.js";
+import Navbar from "./Navbar.jsx";
+import SLATimer from "../components/SLATimer.jsx";
 
-// Note: This file is built for a Tailwind CSS + React project.
-// Recommended packages to install in your project:
-// npm install recharts react-icons @heroicons/react
+// Department color mapping
+const departmentColors = {
+  RED: "#ef4444",
+  BLUE: "#3b82f6",
+  GREEN: "#22c55e",
+  YELLOW: "#eab308",
+  PINK: "#ec4899",
+  BLACK: "#6b7280",
+};
 
-// Mock data (replace with your API responses)
-const mockUser = { name: 'Amit Kumar', email: 'amitk060307@gmail.com', role: 'Admin' };
+export default function UserDashboard() {
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const { user } = useSelector((state) => state.auth);
+  const { myTickets, loading, error, createStatus, createError } = useSelector(
+    (state) => state.tickets
+  );
 
-const mockAssignments = [
-  { id: 1, title: 'Replace AC Filter - Block A', status: 'in-progress', dueDate: '2025-12-08', priority: 'medium', location: 'Block A' },
-  { id: 2, title: 'Restore Backup Power - Dock 3', status: 'open', dueDate: '2025-12-06', priority: 'high', location: 'Dock 3' },
-  { id: 3, title: 'Network outage - Floor 5', status: 'completed', dueDate: '2025-12-02', priority: 'high', location: 'Floor 5' },
-  { id: 4, title: 'Leakage in Roof Panel - Sector 7', status: 'open', dueDate: '2025-12-10', priority: 'low', location: 'Sector 7' },
-];
+  const [showRaiseForm, setShowRaiseForm] = useState(false);
+  const [selectedIssue, setSelectedIssue] = useState(null);
+  const [newIssue, setNewIssue] = useState({
+    title: "",
+    description: "",
+    priority: "MEDIUM",
+    category: "General",
+  });
 
-const mockEngineers = [
-  { id: 1, name: 'Chetan', skill: ['Electrical'], status: 'available', avatarColor: 'bg-cyan-400' },
-  { id: 2, name: 'Pawan', skill: ['Mechanical'], status: 'busy', avatarColor: 'bg-pink-400' },
-  { id: 3, name: 'Jivit', skill: ['Network', 'IT'], status: 'available', avatarColor: 'bg-green-400' },
-  { id: 4, name: 'Amit', skill: ['General'], status: 'on-call', avatarColor: 'bg-yellow-400' },
-];
+  // Get user's department color
+  const themeColor = departmentColors[user?.department] || "#a855f7";
+  const themeGlow = `${themeColor}80`;
 
-const timeseries = [
-  { name: '00:00', value: 10 },
-  { name: '04:00', value: 20 },
-  { name: '08:00', value: 28 },
-  { name: '12:00', value: 16 },
-  { name: '16:00', value: 24 },
-  { name: '20:00', value: 12 },
-];
-
-const categoryData = [
-  { name: 'Electrical', value: 12 },
-  { name: 'Plumbing', value: 6 },
-  { name: 'HVAC', value: 8 },
-  { name: 'Network', value: 10 },
-];
-const PIE_COLORS = ['#06b6d4', '#7c3aed', '#f472b6', '#f59e0b'];
-
-export default function UserDashboardFull() {
-  const [user] = useState(mockUser);
-  const [assignments, setAssignments] = useState(mockAssignments);
-  const [engineers] = useState(mockEngineers);
-  const [notifications, setNotifications] = useState([]);
-  const [showNotifications, setShowNotifications] = useState(false);
-  const [selectedMission, setSelectedMission] = useState(null);
-  const [slaHealth, setSlaHealth] = useState(92); // out of 100
-  const [filterLocation, setFilterLocation] = useState(null);
+  const dynamicStyles = {
+    "--theme-color": themeColor,
+    "--theme-glow": themeGlow,
+    "--theme-gradient": `linear-gradient(to right, ${themeColor}, #a855f7)`,
+  };
 
   useEffect(() => {
-    // Simulate incoming notifications
-    const n1 = { id: 1, type: 'issue', title: 'New Issue: Power spike - Dock 1', time: '2m ago' };
-    const n2 = { id: 2, type: 'sla', title: 'SLA Warning: 1 mission near breach', time: '10m ago' };
-    const timer = setTimeout(() => setNotifications((s) => [n1, n2, ...s]), 1500);
+    if (!user) {
+      navigate("/login");
+      return;
+    }
+    // Redirect engineers to their dashboard
+    if (user.role === "ENGINEER") {
+      navigate("/engineer-dashboard");
+      return;
+    }
+    dispatch(fetchMyTickets());
+  }, [user, navigate, dispatch]);
 
-    const tick = setInterval(() => {
-      // small SLA fluctuation animation
-      setSlaHealth((v) => Math.max(55, Math.min(99, v + (Math.random() > 0.5 ? 1 : -1))));
-    }, 2500);
+  // Handle successful ticket creation
+  useEffect(() => {
+    if (createStatus === "succeeded") {
+      setShowRaiseForm(false);
+      setNewIssue({
+        title: "",
+        description: "",
+        priority: "MEDIUM",
+        category: "General",
+      });
+      dispatch(resetCreateStatus());
+    }
+  }, [createStatus, dispatch]);
 
-    return () => {
-      clearInterval(timer);
-      clearInterval(tick);
+  const handleRaiseIssue = (e) => {
+    e.preventDefault();
+    dispatch(createTicket(newIssue));
+  };
+
+  const getStatusBadge = (status) => {
+    const styles = {
+      OPEN: "bg-red-500/20 text-red-400 border-red-500/30",
+      ASSIGNED: "bg-blue-500/20 text-blue-400 border-blue-500/30",
+      IN_PROGRESS: "bg-amber-500/20 text-amber-400 border-amber-500/30",
+      PENDING_PARTS: "bg-purple-500/20 text-purple-400 border-purple-500/30",
+      RESOLVED: "bg-green-500/20 text-green-400 border-green-500/30",
+      CLOSED: "bg-gray-500/20 text-gray-400 border-gray-500/30",
     };
-  }, []);
-
-  const assignEngineer = (eng, mission) => {
-    // Fake assign: in real app you'd call an API
-    setAssignments((list) => list.map((a) => (a.id === mission.id ? { ...a, status: 'in-progress' } : a)));
-    setNotifications((n) => [{ id: Date.now(), type: 'assign', title: `Assigned ${eng.name} to ${mission.title}`, time: 'now' }, ...n]);
+    return styles[status] || styles.OPEN;
   };
 
-  const createQuickIssue = () => {
-    const newIssue = { id: Date.now(), title: 'Quick: Minor sensor glitch', status: 'open', dueDate: new Date().toISOString().slice(0, 10), priority: 'low', location: 'Sector X' };
-    setAssignments((s) => [newIssue, ...s]);
-    setNotifications((n) => [{ id: Date.now() + 1, type: 'issue', title: `Quick issue created: ${newIssue.title}`, time: 'now' }, ...n]);
+  const getPriorityBadge = (priority) => {
+    const styles = {
+      CRITICAL: "text-red-500",
+      HIGH: "text-red-400",
+      MEDIUM: "text-amber-400",
+      LOW: "text-green-400",
+    };
+    return styles[priority] || styles.MEDIUM;
   };
 
-  const filteredAssignments = filterLocation ? assignments.filter((a) => a.location === filterLocation) : assignments;
+  const formatDate = (dateString) => {
+    if (!dateString) return "N/A";
+    return new Date(dateString).toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+  };
+
+  // Calculate stats
+  const stats = {
+    open: myTickets.filter((t) => t.status === "OPEN").length,
+    inProgress: myTickets.filter(
+      (t) => t.status === "IN_PROGRESS" || t.status === "ASSIGNED"
+    ).length,
+    resolved: myTickets.filter(
+      (t) => t.status === "RESOLVED" || t.status === "CLOSED"
+    ).length,
+  };
+
+  if (!user) return null;
 
   return (
-    <div className="min-h-screen bg-[#050505] text-white relative font-orbitron overflow-hidden">
-      {/* stars bg */}
-      <div className="fixed inset-0 -z-10 bg-black/80">
-        <div style={{ backgroundImage: "url('https://s3-us-west-2.amazonaws.com/s.cdpn.io/1231630/stars.png')" }} className="absolute inset-0 opacity-40 bg-repeat animate-[moveStars_100s_linear_infinite]"></div>
-        <div className="absolute inset-0 bg-gradient-to-t from-[#0b1020]/30 to-transparent"></div>
-      </div>
+    <div
+      className="relative min-h-screen font-orbitron overflow-hidden bg-[#050505] text-white"
+      style={dynamicStyles}
+    >
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap');
 
-      <div className="flex">
-        {/* Sidebar */}
-        <aside className="w-72 p-6 border-r border-purple-800/30 min-h-screen backdrop-blur-md bg-black/50">
-          <div className="flex items-center gap-3 mb-8">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-cyan-400 to-purple-500 flex items-center justify-center text-black font-bold">Z</div>
-            <div>
-              <div className="text-sm text-cyan-300 uppercase tracking-widest">Zordon Ops Hub</div>
-              <div className="text-xs text-gray-300">{user.name} • {user.role}</div>
-            </div>
-          </div>
+        .font-orbitron { font-family: 'Orbitron', sans-serif; }
 
-          <nav className="space-y-2 text-sm">
-            <a className="flex items-center gap-3 p-3 rounded-lg hover:bg-white/5 transition-colors">
-              <ChartBarIcon className="w-5 h-5 text-cyan-300" /> Dashboard
-            </a>
-            <a className="flex items-center gap-3 p-3 rounded-lg hover:bg-white/5 transition-colors"> <ExclamationIcon className="w-5 h-5 text-amber-400"/> Issues</a>
-            <a className="flex items-center gap-3 p-3 rounded-lg hover:bg-white/5 transition-colors"> <UsersIcon className="w-5 h-5 text-pink-400"/> Engineers</a>
-            <a className="flex items-center gap-3 p-3 rounded-lg hover:bg-white/5 transition-colors"> <ClockIcon className="w-5 h-5 text-green-300"/> SLAs</a>
-            <a className="flex items-center gap-3 p-3 rounded-lg hover:bg-white/5 transition-colors"> <SparklesIcon className="w-5 h-5 text-purple-400"/> Reports</a>
-          </nav>
+        .dynamic-text { color: var(--theme-color); transition: color 0.3s ease; }
+        .dynamic-border { border-color: var(--theme-color); transition: border-color 0.3s ease; }
+        .dynamic-bg { background-color: var(--theme-color); }
 
-          <div className="mt-8">
-            <h4 className="text-xs text-gray-400 uppercase tracking-widest">Quick Filters</h4>
-            <div className="mt-3 flex flex-wrap gap-2">
-              {[null, ...new Set(assignments.map((a) => a.location))].map((loc, idx) => (
-                <button key={idx} onClick={() => setFilterLocation(loc)} className={`px-3 py-1 rounded-full text-xs ${filterLocation === loc ? 'bg-cyan-400 text-black' : 'bg-white/5 text-gray-200'}`}>
-                  {loc || 'All'}
+        .dynamic-gradient-text {
+          background: var(--theme-gradient);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+        }
+
+        .dynamic-shadow {
+          box-shadow: 0 0 60px var(--theme-glow);
+        }
+
+        .stars {
+          position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+          background: #000 url('https://s3-us-west-2.amazonaws.com/s.cdpn.io/1231630/stars.png') repeat;
+          z-index: 0; animation: moveStars 100s linear infinite;
+        }
+        @keyframes moveStars { from { background-position: 0 0; } to { background-position: -10000px 5000px; } }
+
+        .floating-card { animation: float 6s ease-in-out infinite; }
+        @keyframes float { 0% { transform: translateY(0px); } 50% { transform: translateY(-10px); } 100% { transform: translateY(0px); } }
+
+        .glow-input:focus {
+          box-shadow: 0 0 20px var(--theme-glow), inset 0 0 10px var(--theme-glow);
+          border-color: var(--theme-color);
+        }
+
+        .neon-button {
+          position: relative; z-index: 1; overflow: hidden; transition: 0.3s;
+          background: linear-gradient(to right, var(--theme-color), #4c1d95, var(--theme-color));
+          background-size: 200% auto;
+          border: 1px solid rgba(255,255,255,0.1);
+        }
+        .neon-button:hover {
+          box-shadow: 0 0 30px var(--theme-glow);
+          transform: scale(1.02);
+          background-position: right center;
+        }
+
+        .card {
+          background: rgba(0,0,0,0.7);
+          border-radius: 16px;
+          border: 1px solid rgba(255,255,255,0.08);
+          backdrop-filter: blur(12px);
+        }
+
+        .card-hover:hover {
+          border-color: var(--theme-color);
+          box-shadow: 0 0 20px var(--theme-glow);
+        }
+
+        .scrollbar-thin::-webkit-scrollbar { width: 6px; }
+        .scrollbar-thin::-webkit-scrollbar-track { background: rgba(255,255,255,0.05); }
+        .scrollbar-thin::-webkit-scrollbar-thumb { background: var(--theme-color); border-radius: 3px; }
+      `}</style>
+
+      {/* Stars Background */}
+      <div className="stars"></div>
+
+      {/* Navbar */}
+      <Navbar />
+
+      {/* Main Container */}
+      <div className="relative z-10">
+        {/* Dashboard Content */}
+        <main className="max-w-7xl mx-auto px-6 py-8">
+          {/* Welcome Section */}
+          <section className="mb-8">
+            <div className="card p-8 dynamic-shadow floating-card">
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+                <div>
+                  <h2 className="text-3xl font-black mb-2">
+                    Welcome back,{" "}
+                    <span className="dynamic-gradient-text">
+                      {user.name?.split(" ")[0] || "Ranger"}
+                    </span>
+                  </h2>
+                  <p className="text-gray-400">
+                    Department:{" "}
+                    <span className="dynamic-text font-bold">
+                      {user.department} RANGER
+                    </span>{" "}
+                    • Ready to protect the grid
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShowRaiseForm(true)}
+                  className="neon-button text-white font-bold py-3 px-6 rounded-xl uppercase tracking-wider"
+                >
+                  + Raise New Issue
                 </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="mt-8 text-xs text-gray-400">Build: <span className="text-cyan-300 font-semibold">v0.9-pre</span></div>
-
-        </aside>
-
-        {/* Main content */}
-        <main className="flex-1 p-8">
-          {/* Header */}
-          <header className="flex items-start justify-between mb-6">
-            <div>
-              <h1 className="text-3xl font-extrabold">Welcome, <span className="text-cyan-300">{user.name.split(' ')[0]}</span></h1>
-              <p className="text-sm text-gray-300 mt-1">Facility Operations • Real-time Command Center</p>
-            </div>
-
-            <div className="flex items-center gap-4">
-              <div className="relative">
-                <button onClick={() => setShowNotifications((s) => !s)} className="p-2 rounded-lg bg-white/5 hover:bg-white/7 transition">
-                  <BellIcon className="w-5 h-5 text-cyan-300" />
-                </button>
-                {notifications.length > 0 && <div className="absolute -top-1 -right-1 text-[10px] px-1 rounded-full bg-rose-500">{notifications.length}</div>}
               </div>
-
-              <div className="flex items-center gap-3">
-                <div className="text-right mr-2">
-                  <div className="text-xs text-gray-400">Active Role</div>
-                  <div className="text-sm">Administrator</div>
-                </div>
-                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-500 to-cyan-400 flex items-center justify-center text-black font-bold">{user.name[0]}</div>
-              </div>
-            </div>
-          </header>
-
-          {/* Top stats + SLA + Charts */}
-          <section className="grid grid-cols-12 gap-6">
-            <div className="col-span-12 xl:col-span-7">
-              <div className="grid grid-cols-3 gap-4 mb-4">
-                <Card title="Total Issues" value={assignments.length} icon={<ExclamationIcon className="w-6 h-6 text-amber-400" />} />
-                <Card title="Open" value={assignments.filter((a) => a.status === 'open').length} icon={<ExclamationIcon className="w-6 h-6 text-red-400" />} />
-                <Card title="In Progress" value={assignments.filter((a) => a.status === 'in-progress').length} icon={<UsersIcon className="w-6 h-6 text-cyan-300" />} />
-              </div>
-
-              <div className="neon-card p-4 mb-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-sm text-gray-300">Live Issue Throughput</h3>
-                    <p className="text-xs text-gray-400">Requests per hour • last 24 hrs</p>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-sm font-bold text-cyan-300">{Math.round(Math.random() * 100)}</div>
-                    <div className="text-xs text-gray-400">avg</div>
-                  </div>
-                </div>
-
-                <div style={{ height: 140 }} className="mt-3">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={timeseries}>
-                      <XAxis dataKey="name" tick={{ fontSize: 11 }} />
-                      <YAxis hide domain={[0, 40]} />
-                      <Tooltip />
-                      <Line type="monotone" dataKey="value" stroke="#06b6d4" strokeWidth={3} dot={false} />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="neon-card p-4">
-                  <h4 className="text-sm text-gray-300">Issue Categories</h4>
-                  <div style={{ height: 170 }} className="mt-2">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie data={categoryData} dataKey="value" nameKey="name" innerRadius={40} outerRadius={60} paddingAngle={2}>
-                          {categoryData.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
-                          ))}
-                        </Pie>
-                        <Tooltip />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  </div>
-                </div>
-
-                <div className="neon-card p-4">
-                  <h4 className="text-sm text-gray-300">AI Insights</h4>
-                  <div className="mt-3 text-sm text-gray-300">
-                    <p>• 3 missions likely to breach SLA in the next 4 hours.</p>
-                    <p>• Recommend assign 2 engineers to HVAC this shift.</p>
-                    <p className="mt-3 text-xs text-gray-400">(Insight module is demo/static - plug your analytics API for live predictions)</p>
-                  </div>
-                </div>
-              </div>
-
-            </div>
-
-            {/* right column */}
-            <div className="col-span-12 xl:col-span-5">
-              <div className="neon-card p-4 mb-4 flex flex-col items-center">
-                <h4 className="text-sm text-gray-300 mb-2">SLA Health</h4>
-                <Gauge value={slaHealth} size={160} />
-                <div className="mt-3 text-sm text-gray-400">System SLA Compliance • <span className="text-cyan-300 font-semibold">{slaHealth}%</span></div>
-              </div>
-
-              <div className="neon-card p-4">
-                <h4 className="text-sm text-gray-300 mb-3">Engineer Pool</h4>
-                <div className="flex flex-col gap-3">
-                  {engineers.map((e) => (
-                    <div key={e.id} className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className={`w-10 h-10 rounded-md flex items-center justify-center text-black font-bold ${e.avatarColor}`}>{e.name[0]}</div>
-                        <div>
-                          <div className="text-sm">{e.name}</div>
-                          <div className="text-xs text-gray-400">{e.skill.join(', ')}</div>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <div className={`px-2 py-1 rounded-full text-xs ${e.status==='available' ? 'bg-green-500 text-black' : e.status==='busy' ? 'bg-amber-400 text-black' : 'bg-white/5 text-gray-300'}`}>{e.status}</div>
-                        <button onClick={() => assignEngineer(e, assignments[0])} className="px-3 py-1 rounded-md bg-cyan-400 text-black text-xs font-bold">Assign</button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
             </div>
           </section>
 
-          {/* Timeline + Assignments Table + Heatmap */}
-          <section className="mt-6 grid grid-cols-12 gap-6">
-            <div className="col-span-12 lg:col-span-4 neon-card p-4">
-              <h4 className="text-sm text-gray-300 mb-3">Activity Timeline</h4>
-              <Timeline items={notifications.slice(0, 8)} />
+          {/* Stats Cards */}
+          <section className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+            <div className="card card-hover p-6 transition-all">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-lg bg-red-500/20 flex items-center justify-center">
+                  <svg
+                    className="w-6 h-6 text-red-400"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                    />
+                  </svg>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-400 uppercase tracking-wider">
+                    Open Issues
+                  </p>
+                  <p className="text-2xl font-black text-red-400">
+                    {stats.open}
+                  </p>
+                </div>
+              </div>
             </div>
 
-            <div className="col-span-12 lg:col-span-5 neon-card p-4">
-              <div className="flex items-center justify-between mb-3">
-                <h4 className="text-sm text-gray-300">Open Missions</h4>
-                <div className="text-xs text-gray-400">{filteredAssignments.length} missions</div>
+            <div className="card card-hover p-6 transition-all">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-lg bg-amber-500/20 flex items-center justify-center">
+                  <svg
+                    className="w-6 h-6 text-amber-400"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-400 uppercase tracking-wider">
+                    In Progress
+                  </p>
+                  <p className="text-2xl font-black text-amber-400">
+                    {stats.inProgress}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="card card-hover p-6 transition-all">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-lg bg-green-500/20 flex items-center justify-center">
+                  <svg
+                    className="w-6 h-6 text-green-400"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-400 uppercase tracking-wider">
+                    Resolved
+                  </p>
+                  <p className="text-2xl font-black text-green-400">
+                    {stats.resolved}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* Error Message */}
+          {error && (
+            <div className="mb-6 p-4 rounded-lg bg-red-500/20 border border-red-500/30 text-red-400">
+              {error}
+            </div>
+          )}
+
+          {/* Loading State */}
+          {loading && (
+            <div className="text-center py-12 text-gray-400">
+              <div className="animate-spin w-8 h-8 border-2 border-current border-t-transparent rounded-full mx-auto mb-4"></div>
+              Loading your issues...
+            </div>
+          )}
+
+          {/* Issues Table */}
+          {!loading && (
+            <section className="card p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-lg font-bold uppercase tracking-wider">
+                  My Issues
+                </h3>
+                <p className="text-xs text-gray-400">
+                  {myTickets.length} total issues
+                </p>
               </div>
 
-              <div className="max-h-96 overflow-y-auto">
-                <table className="w-full table-auto text-sm">
+              <div className="overflow-x-auto scrollbar-thin">
+                <table className="w-full text-sm">
                   <thead>
-                    <tr className="text-left text-xs text-gray-400">
-                      <th className="pb-2">Title</th>
-                      <th className="pb-2">Status</th>
-                      <th className="pb-2">Due</th>
-                      <th className="pb-2"></th>
+                    <tr className="border-b border-white/10">
+                      <th className="text-left py-3 px-4 text-xs text-gray-400 uppercase tracking-wider font-bold">
+                        Title
+                      </th>
+                      <th className="text-left py-3 px-4 text-xs text-gray-400 uppercase tracking-wider font-bold">
+                        Status
+                      </th>
+                      <th className="text-left py-3 px-4 text-xs text-gray-400 uppercase tracking-wider font-bold">
+                        Priority
+                      </th>
+                      <th className="text-left py-3 px-4 text-xs text-gray-400 uppercase tracking-wider font-bold">
+                        SLA
+                      </th>
+                      <th className="text-left py-3 px-4 text-xs text-gray-400 uppercase tracking-wider font-bold">
+                        Created
+                      </th>
+                      <th className="text-right py-3 px-4 text-xs text-gray-400 uppercase tracking-wider font-bold">
+                        Action
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredAssignments.map((a) => (
-                      <tr key={a.id} className="border-t border-white/5">
-                        <td className="py-3">{a.title}</td>
-                        <td className="py-3"><span className={`px-2 py-1 rounded-full text-xs ${a.status==='completed' ? 'bg-green-600 text-black' : a.status==='in-progress' ? 'bg-amber-400 text-black' : 'bg-white/5 text-gray-200'}`}>{a.status}</span></td>
-                        <td className="py-3">{a.dueDate}</td>
-                        <td className="py-3 text-right"><button onClick={() => setSelectedMission(a)} className="px-3 py-1 rounded-md bg-gradient-to-r from-cyan-500 to-purple-500 text-black text-sm font-bold">Open</button></td>
+                    {myTickets.map((issue) => (
+                      <tr
+                        key={issue._id}
+                        className="border-b border-white/5 hover:bg-white/5 transition-colors"
+                      >
+                        <td className="py-4 px-4">
+                          <div className="font-semibold">{issue.title}</div>
+                          <div className="text-xs text-gray-500 mt-1">
+                            {issue.category || "General"}
+                          </div>
+                        </td>
+                        <td className="py-4 px-4">
+                          <span
+                            className={`px-3 py-1 rounded-full text-xs font-bold border ${getStatusBadge(
+                              issue.status
+                            )}`}
+                          >
+                            {issue.status?.replace("_", " ")}
+                          </span>
+                        </td>
+                        <td className="py-4 px-4">
+                          <span
+                            className={`text-xs font-bold uppercase ${getPriorityBadge(
+                              issue.priority
+                            )}`}
+                          >
+                            {issue.priority}
+                          </span>
+                        </td>
+                        <td className="py-4 px-4">
+                          <SLATimer
+                            dueDate={issue.dueDate}
+                            status={issue.status}
+                            breached={issue.breached}
+                            size="sm"
+                          />
+                        </td>
+                        <td className="py-4 px-4 text-gray-400">
+                          {formatDate(issue.createdAt)}
+                        </td>
+                        <td className="py-4 px-4 text-right">
+                          <button
+                            onClick={() => setSelectedIssue(issue)}
+                            className="px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-xs font-bold uppercase tracking-wider transition-colors dynamic-border border hover:dynamic-text"
+                          >
+                            View
+                          </button>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
-              </div>
-            </div>
 
-            <div className="col-span-12 lg:col-span-3 neon-card p-4">
-              <h4 className="text-sm text-gray-300 mb-3">Issue Heatmap</h4>
-              <Heatmap assignments={assignments} onSelect={(loc) => setFilterLocation(loc)} />
-            </div>
-          </section>
-
-          {/* Floating Actions */}
-          <div className="fixed bottom-8 right-8 flex flex-col gap-3 z-50">
-            <button onClick={createQuickIssue} className="p-4 rounded-full bg-gradient-to-br from-cyan-400 to-purple-500 text-black shadow-lg transform hover:scale-105 transition"> <FiPlus /> </button>
-            <button onClick={() => setShowNotifications(true)} className="p-4 rounded-full bg-white/5"> <FiMessageCircle /> </button>
-          </div>
-
-          {/* Notifications drawer */}
-          {showNotifications && (
-            <div className="fixed right-6 top-20 w-96 bg-black/80 backdrop-blur-md border border-white/6 p-4 rounded-lg shadow-2xl">
-              <div className="flex items-center justify-between mb-3">
-                <h4 className="text-sm text-gray-200">Notifications</h4>
-                <button onClick={() => setShowNotifications(false)} className="text-xs text-gray-400">Close</button>
-              </div>
-              <div className="space-y-3 max-h-96 overflow-y-auto">
-                {notifications.length === 0 && <div className="text-gray-400 text-sm">No notifications</div>}
-                {notifications.map((n) => (
-                  <div key={n.id} className="p-3 bg-white/3 rounded-md">
-                    <div className="text-sm font-semibold">{n.title}</div>
-                    <div className="text-xs text-gray-400">{n.time}</div>
+                {myTickets.length === 0 && !loading && (
+                  <div className="text-center py-12 text-gray-400">
+                    <p className="text-lg mb-2">No issues found</p>
+                    <p className="text-sm">
+                      Click "Raise New Issue" to create your first ticket
+                    </p>
                   </div>
-                ))}
+                )}
               </div>
-            </div>
+            </section>
           )}
-
-          {/* Mission Modal */}
-          {selectedMission && (
-            <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/60">
-              <div className="w-[900px] max-w-full neon-card p-6">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <h3 className="text-xl font-bold">{selectedMission.title}</h3>
-                    <div className="text-sm text-gray-400">{selectedMission.location} • Due {selectedMission.dueDate}</div>
-                  </div>
-                  <button onClick={() => setSelectedMission(null)} className="text-gray-400">Close</button>
-                </div>
-
-                <div className="mt-4 grid grid-cols-3 gap-4">
-                  <div className="col-span-2">
-                    <p className="text-sm text-gray-300 mb-3">Description: Placeholder mission details. Add notes, attachments, and history here.</p>
-                    <div className="space-y-2">
-                      <h4 className="text-xs text-gray-400 uppercase">Comments</h4>
-                      <div className="p-3 bg-white/3 rounded-md text-sm">No comments yet.</div>
-                    </div>
-                  </div>
-
-                  <div>
-                    <h4 className="text-xs text-gray-400 uppercase">Assign</h4>
-                    <div className="mt-2 space-y-2">
-                      {engineers.map((eng) => (
-                        <div key={eng.id} className="flex items-center justify-between">
-                          <div className="text-sm">{eng.name}</div>
-                          <button onClick={() => assignEngineer(eng, selectedMission)} className="px-3 py-1 rounded-md bg-cyan-400 text-black text-xs font-bold">Assign</button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-              </div>
-            </div>
-          )}
-
         </main>
       </div>
 
-      {/* small custom styles used where Tailwind needs support */}
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap');
-        .font-orbitron { font-family: 'Orbitron', sans-serif; }
-        .neon-card { background: rgba(0,0,0,0.6); border-radius: 14px; border: 1px solid rgba(124,58,237,0.12); box-shadow: 0 20px 60px rgba(0,0,0,0.4); padding: 0.75rem; }
-        @keyframes moveStars { from { background-position: 0 0 } to { background-position: -10000px 5000px } }
-      `}</style>
-    </div>
-  );
-}
+      {/* Raise Issue Modal */}
+      {showRaiseForm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+          <div className="card p-8 w-full max-w-lg dynamic-shadow">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-black uppercase tracking-wider">
+                Raise New Issue
+              </h3>
+              <button
+                onClick={() => setShowRaiseForm(false)}
+                className="text-gray-400 hover:text-white transition-colors text-2xl"
+              >
+                ×
+              </button>
+            </div>
 
-function Card({ title, value, icon }) {
-  return (
-    <div className="neon-card p-4 flex items-center gap-3">
-      <div className="p-3 rounded-lg bg-white/5">{icon}</div>
-      <div>
-        <div className="text-xs text-gray-400">{title}</div>
-        <div className="text-2xl font-extrabold">{value}</div>
-      </div>
-    </div>
-  );
-}
+            {createError && (
+              <div className="mb-4 p-3 rounded-lg bg-red-500/20 border border-red-500/30 text-red-400 text-sm">
+                {createError}
+              </div>
+            )}
 
-function Gauge({ value = 75, size = 140 }) {
-  const radius = size / 2 - 10;
-  const circumference = radius * Math.PI;
-  const pct = Math.max(0, Math.min(100, value));
-  const dash = circumference * (pct / 100);
-  const remainder = circumference - dash;
+            <form onSubmit={handleRaiseIssue} className="space-y-4">
+              <div>
+                <label className="block text-xs text-gray-400 uppercase tracking-wider mb-2">
+                  Issue Title *
+                </label>
+                <input
+                  type="text"
+                  value={newIssue.title}
+                  onChange={(e) =>
+                    setNewIssue({ ...newIssue, title: e.target.value })
+                  }
+                  required
+                  placeholder="Brief description of the issue"
+                  className="w-full p-4 bg-gray-900 text-white rounded-lg border border-gray-700 focus:outline-none glow-input transition-all placeholder-gray-600 font-bold tracking-wider text-sm"
+                />
+              </div>
 
-  const color = pct > 80 ? '#06b6d4' : pct > 60 ? '#f59e0b' : '#ef4444';
+              <div>
+                <label className="block text-xs text-gray-400 uppercase tracking-wider mb-2">
+                  Category
+                </label>
+                <select
+                  value={newIssue.category}
+                  onChange={(e) =>
+                    setNewIssue({ ...newIssue, category: e.target.value })
+                  }
+                  className="w-full p-4 bg-gray-900 text-white rounded-lg border border-gray-700 focus:outline-none glow-input transition-all font-bold tracking-wider text-sm appearance-none cursor-pointer"
+                >
+                  <option value="General">General</option>
+                  <option value="IT">IT / Network</option>
+                  <option value="Electrical">Electrical</option>
+                  <option value="Plumbing">Plumbing</option>
+                  <option value="HVAC">HVAC</option>
+                  <option value="Security">Security</option>
+                  <option value="Facilities">Facilities</option>
+                </select>
+              </div>
 
-  return (
-    <svg width={size} height={size / 1} viewBox={`0 0 ${size} ${size / 1}`}>
-      <defs>
-        <linearGradient id="g1" x1="0%" x2="100%">
-          <stop offset="0%" stopColor="#06b6d4" />
-          <stop offset="100%" stopColor="#7c3aed" />
-        </linearGradient>
-      </defs>
-      <g transform={`translate(${size / 2}, ${size / 2})`}>
-        <circle r={radius} cx="0" cy="0" stroke="rgba(255,255,255,0.06)" strokeWidth="12" fill="none" strokeLinecap="round" transform="rotate(-90)" />
-        <circle r={radius} cx="0" cy="0" stroke="url(#g1)" strokeWidth="12" fill="none" strokeDasharray={`${dash} ${remainder}`} strokeLinecap="round" transform="rotate(-90)" />
-        <text x="0" y="6" textAnchor="middle" fontSize="20" fontWeight="700" fill="white">{pct}%</text>
-      </g>
-    </svg>
-  );
-}
+              <div>
+                <label className="block text-xs text-gray-400 uppercase tracking-wider mb-2">
+                  Description
+                </label>
+                <textarea
+                  value={newIssue.description}
+                  onChange={(e) =>
+                    setNewIssue({ ...newIssue, description: e.target.value })
+                  }
+                  rows={4}
+                  placeholder="Detailed explanation of the problem"
+                  className="w-full p-4 bg-gray-900 text-white rounded-lg border border-gray-700 focus:outline-none glow-input transition-all placeholder-gray-600 font-bold tracking-wider text-sm resize-none"
+                />
+              </div>
 
-function Timeline({ items = [] }) {
-  if (!items.length) return <div className="text-sm text-gray-400">No activity yet.</div>;
-  return (
-    <div className="space-y-3">
-      {items.map((it) => (
-        <div key={it.id} className="flex items-start gap-3">
-          <div className="w-2 h-2 rounded-full bg-cyan-400 mt-2" />
-          <div>
-            <div className="text-sm font-semibold">{it.title}</div>
-            <div className="text-xs text-gray-400">{it.time}</div>
+              <div>
+                <label className="block text-xs text-gray-400 uppercase tracking-wider mb-2">
+                  Priority Level
+                </label>
+                <select
+                  value={newIssue.priority}
+                  onChange={(e) =>
+                    setNewIssue({ ...newIssue, priority: e.target.value })
+                  }
+                  className="w-full p-4 bg-gray-900 text-white rounded-lg border border-gray-700 focus:outline-none glow-input transition-all font-bold tracking-wider text-sm appearance-none cursor-pointer"
+                >
+                  <option value="LOW">LOW - Can wait</option>
+                  <option value="MEDIUM">MEDIUM - Needs attention</option>
+                  <option value="HIGH">HIGH - Urgent</option>
+                  <option value="CRITICAL">CRITICAL - Emergency</option>
+                </select>
+              </div>
+
+              <div className="pt-4">
+                <button
+                  type="submit"
+                  disabled={createStatus === "loading"}
+                  className="w-full neon-button text-white font-black py-4 rounded-xl uppercase tracking-wider text-lg disabled:opacity-50"
+                >
+                  {createStatus === "loading"
+                    ? "Submitting..."
+                    : "Submit Issue"}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
-      ))}
-    </div>
-  );
-}
+      )}
 
-function Heatmap({ assignments = [], onSelect = () => {} }) {
-  // Compute counts per location
-  const locCounts = {};
-  assignments.forEach((a) => { locCounts[a.location] = (locCounts[a.location] || 0) + 1; });
-  const locations = Object.keys(locCounts);
-  const max = Math.max(1, ...Object.values(locCounts));
+      {/* Issue Detail Modal */}
+      {selectedIssue && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+          <div className="card p-8 w-full max-w-2xl dynamic-shadow max-h-[90vh] overflow-y-auto">
+            <div className="flex items-start justify-between mb-6">
+              <div>
+                <h3 className="text-xl font-black mb-2">
+                  {selectedIssue.title}
+                </h3>
+                <div className="flex items-center gap-3 flex-wrap">
+                  <span
+                    className={`px-3 py-1 rounded-full text-xs font-bold border ${getStatusBadge(
+                      selectedIssue.status
+                    )}`}
+                  >
+                    {selectedIssue.status?.replace("_", " ")}
+                  </span>
+                  <span
+                    className={`text-xs font-bold uppercase ${getPriorityBadge(
+                      selectedIssue.priority
+                    )}`}
+                  >
+                    {selectedIssue.priority} Priority
+                  </span>
+                  <SLATimer
+                    dueDate={selectedIssue.dueDate}
+                    status={selectedIssue.status}
+                    breached={selectedIssue.breached}
+                    size="md"
+                  />
+                </div>
+              </div>
+              <button
+                onClick={() => setSelectedIssue(null)}
+                className="text-gray-400 hover:text-white transition-colors text-2xl"
+              >
+                ×
+              </button>
+            </div>
 
-  const grid = Array.from({ length: 9 }).map((_, i) => ({ label: locations[i] || '—', count: locCounts[locations[i]] || 0 }));
+            <div className="space-y-6">
+              <div>
+                <h4 className="text-xs text-gray-400 uppercase tracking-wider mb-2">
+                  Description
+                </h4>
+                <p className="text-gray-300 leading-relaxed">
+                  {selectedIssue.description || "No description provided"}
+                </p>
+              </div>
 
-  return (
-    <div className="grid grid-cols-3 gap-2">
-      {grid.map((g, i) => {
-        const intensity = Math.round((g.count / max) * 100);
-        const bg = g.count === 0 ? 'bg-white/3' : `bg-[rgba(124,58,237,${0.15 + (intensity/200)})]`;
-        return (
-          <button key={i} onClick={() => onSelect(g.label==='—' ? null : g.label)} className={`${bg} p-3 rounded-md text-xs text-gray-200`}> 
-            <div className="font-semibold">{g.label}</div>
-            <div className="text-[11px] text-gray-400">{g.count} issues</div>
-          </button>
-        );
-      })}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <h4 className="text-xs text-gray-400 uppercase tracking-wider mb-2">
+                    Category
+                  </h4>
+                  <p className="font-bold">
+                    {selectedIssue.category || "General"}
+                  </p>
+                </div>
+                <div>
+                  <h4 className="text-xs text-gray-400 uppercase tracking-wider mb-2">
+                    Created On
+                  </h4>
+                  <p className="font-bold">
+                    {formatDate(selectedIssue.createdAt)}
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <h4 className="text-xs text-gray-400 uppercase tracking-wider mb-2">
+                    Assigned To
+                  </h4>
+                  <p className="font-bold">
+                    {selectedIssue.assignee?.name || "Not Assigned"}
+                  </p>
+                </div>
+                <div>
+                  <h4 className="text-xs text-gray-400 uppercase tracking-wider mb-2">
+                    Ticket ID
+                  </h4>
+                  <p className="font-bold dynamic-text">
+                    #{selectedIssue._id?.slice(-8) || "N/A"}
+                  </p>
+                </div>
+              </div>
+
+              {selectedIssue.dueDate && (
+                <div>
+                  <h4 className="text-xs text-gray-400 uppercase tracking-wider mb-2">
+                    Due Date
+                  </h4>
+                  <p className="font-bold">
+                    {formatDate(selectedIssue.dueDate)}
+                  </p>
+                </div>
+              )}
+
+              <div className="pt-4 border-t border-white/10">
+                <button
+                  onClick={() => setSelectedIssue(null)}
+                  className="w-full py-3 rounded-lg bg-white/5 hover:bg-white/10 text-sm font-bold uppercase tracking-wider transition-colors"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
