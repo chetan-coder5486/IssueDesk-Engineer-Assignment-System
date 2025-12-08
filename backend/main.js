@@ -9,6 +9,7 @@ import { fileURLToPath } from 'url';
 import { connectDB } from './utils/db.js';
 import userRoute from './routes/user.route.js';
 import ticketRoute from './routes/ticket.route.js';
+import commentRoute from './routes/comment.route.js';
 
 // Get __dirname in ES modules
 const __filename = fileURLToPath(import.meta.url);
@@ -43,6 +44,7 @@ app.use(cors(corsOptions));
 //apis
 app.use('/api/v1/user', userRoute);
 app.use('/api/v1/tickets', ticketRoute);
+app.use('/api/v1', commentRoute);
 
 const server = http.createServer(app);
 // Initialize Socket.io

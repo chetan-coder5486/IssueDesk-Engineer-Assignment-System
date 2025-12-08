@@ -8,6 +8,7 @@ import {
 } from "../store/ticketSlice.js";
 import Navbar from "./Navbar.jsx";
 import SLATimer from "../components/SLATimer.jsx";
+import Comments from "../components/Comments.jsx";
 
 // Department color mapping
 const departmentColors = {
@@ -519,6 +520,14 @@ export default function EngineerDashboard() {
                     </option>
                   ))}
                 </select>
+              </div>
+
+              {/* Comments Section */}
+              <div>
+                <h4 className="text-xs text-gray-400 uppercase tracking-wider mb-3">
+                  Discussion
+                </h4>
+                <Comments ticketId={selectedTicket._id} />
               </div>
 
               <div className="pt-4 border-t border-white/10">

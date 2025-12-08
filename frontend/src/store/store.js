@@ -4,6 +4,7 @@ import storage from 'redux-persist/lib/storage';
 import authReducer from './authSlice.js';
 import ticketReducer from './ticketSlice.js';
 import adminReducer from './adminSlice.js';
+import commentReducer from './commentSlice.js';
 
 // Persist config - only persist auth
 const persistConfig = {
@@ -16,6 +17,7 @@ const rootReducer = combineReducers({
     auth: authReducer,
     tickets: ticketReducer,
     admin: adminReducer,
+    comments: commentReducer,
 });
 
 const persistedReducer = persistReducer(persistConfig, rootReducer);
