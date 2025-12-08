@@ -173,4 +173,104 @@ const logout = async (req, res) => {
     }
 };
 
-export { signup, login, refresh, logout };
+// Get all engineers (for admin assignment)
+const getAllEngineers = async (req, res) => {
+    try {
+        const engineers = await User.find({ role: 'ENGINEER' })
+            .select('name email department isOnline workloadScore skills')
+            .sort({ workloadScore: 1, name: 1 });
+        return res.status(200).json({ engineers });
+    } catch (error) {
+        console.error('Get engineers error:', error);
+        return res.status(500).json({ message: 'Failed to fetch engineers' });
+    }
+};
+
+// Get all users (for admin)
+const getAllUsers = async (req, res) => {
+    try {
+        const users = await User.find()
+            .select('name email role department isOnline workloadScore createdAt')
+            .sort({ createdAt: -1 });
+        return res.status(200).json({ users });
+    } catch (error) {
+        console.error('Get users error:', error);
+        return res.status(500).json({ message: 'Failed to fetch users' });
+    }
+};
+
+// Update engineer workload
+const updateEngineerWorkload = async (req, res) => {
+    try {
+        const { userId } = req.params;
+        const { workloadScore, isOnline } = req.body;
+
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        if (workloadScore !== undefined) user.workloadScore = workloadScore;
+        if (isOnline !== undefined) user.isOnline = isOnline;
+
+        await user.save();
+        return res.status(200).json({ message: 'Engineer updated', user });
+    } catch (error) {
+        console.error('Update engineer error:', error);
+        return res.status(500).json({ message: 'Failed to update engineer' });
+    }
+};
+
+// Get dashboard stats (for admin)
+const getDashboardStats = async (req, res) => {
+    try {
+        const Ticket = (await import('../models/ticket.model.js')).default;
+
+        const totalUsers = await User.countDocuments();
+        const totalEngineers = await User.countDocuments({ role: 'ENGINEER' });
+        const onlineEngineers = await User.countDocuments({ role: 'ENGINEER', isOnline: true });
+
+        const totalTickets = await Ticket.countDocuments();
+        const openTickets = await Ticket.countDocuments({ status: 'OPEN' });
+        const assignedTickets = await Ticket.countDocuments({ status: 'ASSIGNED' });
+        const inProgressTickets = await Ticket.countDocuments({ status: 'IN_PROGRESS' });
+        const resolvedTickets = await Ticket.countDocuments({ status: { $in: ['RESOLVED', 'CLOSED'] } });
+        const criticalTickets = await Ticket.countDocuments({ priority: 'CRITICAL', status: { $nin: ['RESOLVED', 'CLOSED'] } });
+        const breachedTickets = await Ticket.countDocuments({ breached: true });
+
+        // Get tickets by priority
+        const ticketsByPriority = await Ticket.aggregate([
+            { $match: { status: { $nin: ['RESOLVED', 'CLOSED'] } } },
+            { $group: { _id: '$priority', count: { $sum: 1 } } }
+        ]);
+
+        // Get tickets by department (via reporter)
+        const ticketsByDepartment = await Ticket.aggregate([
+            { $lookup: { from: 'users', localField: 'reporter', foreignField: '_id', as: 'reporterInfo' } },
+            { $unwind: '$reporterInfo' },
+            { $group: { _id: '$reporterInfo.department', count: { $sum: 1 } } }
+        ]);
+
+        return res.status(200).json({
+            stats: {
+                totalUsers,
+                totalEngineers,
+                onlineEngineers,
+                totalTickets,
+                openTickets,
+                assignedTickets,
+                inProgressTickets,
+                resolvedTickets,
+                criticalTickets,
+                breachedTickets,
+                ticketsByPriority,
+                ticketsByDepartment
+            }
+        });
+    } catch (error) {
+        console.error('Get dashboard stats error:', error);
+        return res.status(500).json({ message: 'Failed to fetch dashboard stats' });
+    }
+};
+
+export { signup, login, refresh, logout, getAllEngineers, getAllUsers, updateEngineerWorkload, getDashboardStats };
