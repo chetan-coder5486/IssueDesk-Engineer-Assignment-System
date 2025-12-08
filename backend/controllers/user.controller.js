@@ -42,11 +42,14 @@ const signup = async (req, res) => {
 
         const hashedPassword = await bcrypt.hash(password, 10);
 
+        // Force RANGER role - ADMIN can only be created manually
+        const userRole = (role === 'ADMIN') ? 'RANGER' : (role || 'RANGER');
+
         const user = new User({
             name: name.trim(),
             email: normalizedEmail,
             passwordHash: hashedPassword,
-            role: role || 'RANGER',
+            role: userRole,
             department: department || 'None',
         });
 
