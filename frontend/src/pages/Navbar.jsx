@@ -105,15 +105,18 @@ export default function Navbar() {
 
           {/* Navigation Links */}
           <div className="hidden md:flex items-center gap-1">
-            {navLinks.map((link, idx) => (
-              <Link
-                key={idx}
-                to={link.to}
-                className="nav-link px-4 py-2 text-sm font-bold text-gray-300 uppercase tracking-wider rounded-lg hover:bg-white/5"
-              >
-                {link.label}
-              </Link>
-            ))}
+            {navLinks.map((link, idx) => {
+              const href = link.hash ? `${link.to}${link.hash}` : link.to;
+              return (
+                <Link
+                  key={idx}
+                  to={href}
+                  className="nav-link px-4 py-2 text-sm font-bold text-gray-300 uppercase tracking-wider rounded-lg hover:bg-white/5"
+                >
+                  {link.label}
+                </Link>
+              );
+            })}
           </div>
 
           {/* User Section */}
