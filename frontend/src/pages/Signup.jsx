@@ -12,6 +12,7 @@ const Signup = () => {
   const [selectedColor, setSelectedColor] = useState("#ef4444"); // Default RED
   const [showPasswordRules, setShowPasswordRules] = useState(false); // Helper text toggle
   const [passwordError, setPasswordError] = useState(""); // Error state for validation
+  const [emailError, setEmailError] = useState(""); // Add email error state
 
   // Form State
   const [formData, setFormData] = useState({
@@ -64,9 +65,68 @@ const Signup = () => {
     return regex.test(password);
   };
 
+  // Email validation function with comprehensive checks
+  const validateEmail = (email) => {
+    const trimmedEmail = email.trim();
+    
+    // Check if empty
+    if (!trimmedEmail) {
+      return "Email is required";
+    }
+
+    // Check length
+    if (trimmedEmail.length > 254) {
+      return "Email is too long (max 254 characters)";
+    }
+
+    // Comprehensive regex for email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(trimmedEmail)) {
+      return "Invalid email format";
+    }
+
+    // Check for consecutive dots
+    if (trimmedEmail.includes("..")) {
+      return "Email cannot contain consecutive dots";
+    }
+
+    // Check if starts or ends with dot before @
+    const localPart = trimmedEmail.split("@")[0];
+    if (localPart.startsWith(".") || localPart.endsWith(".")) {
+      return "Email local part cannot start or end with a dot";
+    }
+
+    // Check for valid domain
+    const domainPart = trimmedEmail.split("@")[1];
+    if (!domainPart || domainPart.split(".").length < 2) {
+      return "Domain must have at least one dot";
+    }
+
+    // Check domain extension (TLD must be at least 2 chars)
+    const domainExtension = domainPart.split(".").pop();
+    if (domainExtension.length < 2) {
+      return "Domain extension must be at least 2 characters";
+    }
+
+    // Check for special characters in domain
+    if (!/^[a-zA-Z0-9.-]+$/.test(domainPart)) {
+      return "Domain contains invalid characters";
+    }
+
+    return ""; // Valid email
+  };
+
   const handleChange = (e) => {
     const { id, value } = e.target;
     setFormData((prev) => ({ ...prev, [id]: value }));
+
+    if (id === "email") {
+      const validation = validateEmail(value);
+      setEmailError(validation);
+      if (error) {
+        dispatch(clearSignupError());
+      }
+    }
 
     if (id === "password") {
       if (value.length === 0) {
@@ -95,6 +155,15 @@ const Signup = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+
+    // Validate email before submission
+    const emailValidation = validateEmail(formData.email);
+    if (emailValidation) {
+      setEmailError(emailValidation);
+      dispatch(setSignupError("Please enter a valid email address."));
+      return;
+    }
+
     if (passwordError) {
       dispatch(setSignupError("Please meet the password requirements."));
       return;
@@ -277,8 +346,15 @@ const Signup = () => {
                     value={formData.email}
                     onChange={handleChange}
                     required
-                    className="w-full p-4 bg-gray-900 text-white rounded-lg border border-gray-700 focus:outline-none glow-input transition-all placeholder-gray-600 font-bold tracking-wider text-sm"
+                    className={`w-full p-4 bg-gray-900 text-white rounded-lg border border-gray-700 focus:outline-none glow-input transition-all placeholder-gray-600 font-bold tracking-wider text-sm ${
+                      emailError ? "input-error" : ""
+                    }`}
                   />
+                  {emailError && (
+                    <div className="helper-text text-error">
+                      {emailError}
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -373,7 +449,7 @@ const Signup = () => {
               <div className="pt-2">
                 <button
                   type="submit"
-                  disabled={loading || passwordError}
+                  disabled={loading || passwordError || emailError}
                   className="w-full neon-button text-white font-black py-4 rounded-xl uppercase tracking-[0.15em] text-lg shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
                   style={
                     loading
