@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { logoutUser } from "../store/authSlice.js";
 import {
   fetchAssignedTickets,
@@ -31,6 +31,7 @@ const STATUS_OPTIONS = [
 export default function EngineerDashboard() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useSelector((state) => state.auth);
   const { assignedTickets, loading, error } = useSelector(
     (state) => state.tickets
@@ -62,7 +63,16 @@ export default function EngineerDashboard() {
     dispatch(fetchAssignedTickets());
   }, [user, navigate, dispatch]);
 
+  useEffect(() => {
+    if (location.hash) {
+      const el = document.querySelector(location.hash);
+      if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [location]);
+
   const handleStatusChange = async (ticketId, newStatus) => {
+    const current = assignedTickets.find((t) => t._id === ticketId);
+    if (current?.status === "RESOLVED") return; // lock resolved tickets
     setUpdatingId(ticketId);
     await dispatch(updateTicketStatus({ ticketId, status: newStatus }));
     setUpdatingId(null);
@@ -277,6 +287,7 @@ export default function EngineerDashboard() {
           {/* Tickets Table */}
           {!loading && (
             <section className="card p-6">
+            <section id="tasks" className="card p-6"></section>
               <div className="flex items-center justify-between mb-6">
                 <h3 className="text-lg font-bold uppercase tracking-wider">
                   Assigned Tasks
@@ -330,16 +341,22 @@ export default function EngineerDashboard() {
                         </td>
                         <td className="py-4 px-4">
                           <select
-                            value={ticket.status}
-                            onChange={(e) =>
-                              handleStatusChange(ticket._id, e.target.value)
-                            }
-                            disabled={updatingId === ticket._id}
-                            className={`px-3 py-1 rounded-lg text-xs font-bold border bg-transparent cursor-pointer glow-input ${getStatusBadge(
-                              ticket.status
-                            )} ${
-                              updatingId === ticket._id ? "opacity-50" : ""
-                            }`}
+                          value={ticket.status}
+                          onChange={(e) =>
+                            handleStatusChange(ticket._id, e.target.value)
+                          }
+                          disabled={
+                            updatingId === ticket._id ||
+                            ticket.status === "RESOLVED"
+                          }
+                          className={`px-3 py-1 rounded-lg text-xs font-bold border bg-transparent cursor-pointer glow-input ${getStatusBadge(
+                            ticket.status
+                          )} ${
+                            updatingId === ticket._id ||
+                            ticket.status === "RESOLVED"
+                              ? "opacity-50 cursor-not-allowed"
+                              : ""
+                          }`}
                           >
                             {STATUS_OPTIONS.map((opt) => (
                               <option
@@ -506,13 +523,19 @@ export default function EngineerDashboard() {
                 <select
                   value={selectedTicket.status}
                   onChange={(e) => {
+                    if (selectedTicket.status === "RESOLVED") return;
                     handleStatusChange(selectedTicket._id, e.target.value);
                     setSelectedTicket({
                       ...selectedTicket,
                       status: e.target.value,
                     });
                   }}
-                  className="w-full p-3 rounded-lg bg-gray-900 text-white border border-gray-700 glow-input font-bold"
+                  disabled={selectedTicket.status === "RESOLVED"}
+                  className={`w-full p-3 rounded-lg bg-gray-900 text-white border border-gray-700 glow-input font-bold ${
+                    selectedTicket.status === "RESOLVED"
+                      ? "opacity-60 cursor-not-allowed"
+                      : ""
+                  }`}
                 >
                   {STATUS_OPTIONS.map((opt) => (
                     <option key={opt.value} value={opt.value}>
