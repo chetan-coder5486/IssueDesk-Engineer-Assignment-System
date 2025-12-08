@@ -5,7 +5,11 @@ import {
   addComment,
   editComment,
   deleteComment,
+  addCommentFromSocket,
+  updateCommentFromSocket,
+  removeCommentFromSocket,
 } from "../store/commentSlice";
+import socket from "../utils/socket";
 import {
   FaPaperPlane,
   FaEdit,
@@ -26,11 +30,47 @@ const Comments = ({ ticketId }) => {
   const [editContent, setEditContent] = useState("");
   const messagesEndRef = useRef(null);
 
+  // Connect socket and join ticket room
   useEffect(() => {
     if (ticketId) {
+      // Connect socket if not connected
+      if (!socket.connected) {
+        socket.connect();
+      }
+
+      // Join the ticket room
+      socket.emit("join_ticket", ticketId);
+
+      // Fetch initial comments
       dispatch(fetchComments(ticketId));
+
+      // Listen for new comments
+      socket.on("new_comment", (comment) => {
+        // Only add if it's not from the current user (they already have it via Redux)
+        if (comment.author?._id !== user?._id) {
+          dispatch(addCommentFromSocket({ ticketId, comment }));
+        }
+      });
+
+      // Listen for comment updates
+      socket.on("comment_updated", (comment) => {
+        dispatch(updateCommentFromSocket({ ticketId, comment }));
+      });
+
+      // Listen for comment deletions
+      socket.on("comment_deleted", ({ commentId, ticketId: tid }) => {
+        dispatch(removeCommentFromSocket({ ticketId: tid, commentId }));
+      });
+
+      // Cleanup on unmount or ticketId change
+      return () => {
+        socket.emit("leave_ticket", ticketId);
+        socket.off("new_comment");
+        socket.off("comment_updated");
+        socket.off("comment_deleted");
+      };
     }
-  }, [dispatch, ticketId]);
+  }, [ticketId, dispatch, user?._id]);
 
   useEffect(() => {
     scrollToBottom();
@@ -103,7 +143,10 @@ const Comments = ({ ticketId }) => {
   };
 
   const isOwnComment = (comment) => {
-    return comment.author?._id === user?._id;
+    // user.id comes from auth (backend returns 'id'), comment.author._id comes from MongoDB populate
+    return (
+      comment.author?._id === user?.id || comment.author?._id === user?._id
+    );
   };
 
   return (
@@ -212,26 +255,20 @@ const Comments = ({ ticketId }) => {
                   </span>
 
                   {isOwnComment(comment) && editingId !== comment._id && (
-                    <div className="flex gap-2 ml-2">
+                    <div className="flex gap-3 ml-3">
                       <button
                         onClick={() => handleEdit(comment)}
-                        className={`p-1 rounded hover:bg-opacity-20 hover:bg-black ${
-                          isOwnComment(comment)
-                            ? "text-indigo-200"
-                            : "text-gray-400"
-                        }`}
+                        className="p-1.5 rounded-full bg-white/20 hover:bg-white/40 text-white transition-all"
+                        title="Edit comment"
                       >
-                        <FaEdit size={12} />
+                        <FaEdit size={14} />
                       </button>
                       <button
                         onClick={() => handleDelete(comment._id)}
-                        className={`p-1 rounded hover:bg-opacity-20 hover:bg-black ${
-                          isOwnComment(comment)
-                            ? "text-indigo-200"
-                            : "text-gray-400"
-                        }`}
+                        className="p-1.5 rounded-full bg-white/20 hover:bg-red-500 text-white transition-all"
+                        title="Delete comment"
                       >
-                        <FaTrash size={12} />
+                        <FaTrash size={14} />
                       </button>
                     </div>
                   )}
@@ -254,7 +291,7 @@ const Comments = ({ ticketId }) => {
             value={newComment}
             onChange={(e) => setNewComment(e.target.value)}
             placeholder="Type your message..."
-            className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            className="flex-1 px-3 py-2 text-sm text-gray-900 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent placeholder-gray-400"
           />
           <button
             type="submit"

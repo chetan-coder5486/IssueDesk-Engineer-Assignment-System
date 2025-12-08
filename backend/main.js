@@ -50,21 +50,28 @@ const server = http.createServer(app);
 // Initialize Socket.io
 const io = new Server(server, {
     cors: {
-        origin: "*",
+        origin: ["http://localhost:5173", "http://localhost:5174"],
+        credentials: true,
     },
 });
 
-// Socket logic
+// Export io for use in controllers
+export { io };
+
+// Socket logic for real-time comments
 io.on("connection", (socket) => {
     console.log("User connected:", socket.id);
 
-    socket.on("join_room", (roomId) => {
-        socket.join(roomId);
-        console.log(`User joined room ${roomId}`);
+    // Join a ticket room to receive real-time comment updates
+    socket.on("join_ticket", (ticketId) => {
+        socket.join(`ticket_${ticketId}`);
+        console.log(`User ${socket.id} joined ticket room: ticket_${ticketId}`);
     });
 
-    socket.on("send_message", (data) => {
-        io.to(data.roomId).emit("receive_message", data);
+    // Leave a ticket room
+    socket.on("leave_ticket", (ticketId) => {
+        socket.leave(`ticket_${ticketId}`);
+        console.log(`User ${socket.id} left ticket room: ticket_${ticketId}`);
     });
 
     socket.on("disconnect", () => {
