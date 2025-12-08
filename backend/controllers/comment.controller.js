@@ -1,5 +1,6 @@
 import Comment from '../models/comment.model.js';
 import Ticket from '../models/ticket.model.js';
+import { io } from '../main.js';
 
 // Get all comments for a ticket
 export const getComments = async (req, res) => {
@@ -40,6 +41,9 @@ export const addComment = async (req, res) => {
         await comment.save();
         await comment.populate('author', 'name email department role');
 
+        // Emit socket event for real-time update
+        io.to(`ticket_${ticketId}`).emit('new_comment', comment);
+
         return res.status(201).json({ message: 'Comment added', comment });
     } catch (error) {
         return res.status(500).json({ message: 'Failed to add comment', error: error.message });
@@ -67,9 +71,13 @@ export const editComment = async (req, res) => {
             return res.status(403).json({ message: 'You can only edit your own comments' });
         }
 
+        const ticketId = comment.ticketId;
         comment.content = content.trim();
         await comment.save();
         await comment.populate('author', 'name email department role');
+
+        // Emit socket event for real-time update
+        io.to(`ticket_${ticketId}`).emit('comment_updated', comment);
 
         return res.status(200).json({ message: 'Comment updated', comment });
     } catch (error) {
@@ -93,7 +101,12 @@ export const deleteComment = async (req, res) => {
             return res.status(403).json({ message: 'You can only delete your own comments' });
         }
 
+        const ticketId = comment.ticketId;
         await Comment.findByIdAndDelete(commentId);
+
+        // Emit socket event for real-time update
+        io.to(`ticket_${ticketId}`).emit('comment_deleted', { commentId, ticketId });
+
         return res.status(200).json({ message: 'Comment deleted' });
     } catch (error) {
         return res.status(500).json({ message: 'Failed to delete comment', error: error.message });

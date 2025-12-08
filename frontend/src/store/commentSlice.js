@@ -70,6 +70,37 @@ const commentSlice = createSlice({
         clearTicketComments: (state, action) => {
             delete state.commentsByTicket[action.payload];
         },
+        // Socket.io real-time actions
+        addCommentFromSocket: (state, action) => {
+            const { ticketId, comment } = action.payload;
+            if (!state.commentsByTicket[ticketId]) {
+                state.commentsByTicket[ticketId] = [];
+            }
+            // Avoid duplicates
+            const exists = state.commentsByTicket[ticketId].some(c => c._id === comment._id);
+            if (!exists) {
+                state.commentsByTicket[ticketId].push(comment);
+            }
+        },
+        updateCommentFromSocket: (state, action) => {
+            const { ticketId, comment } = action.payload;
+            const ticketComments = state.commentsByTicket[ticketId];
+            if (ticketComments) {
+                const index = ticketComments.findIndex((c) => c._id === comment._id);
+                if (index !== -1) {
+                    ticketComments[index] = comment;
+                }
+            }
+        },
+        removeCommentFromSocket: (state, action) => {
+            const { ticketId, commentId } = action.payload;
+            const ticketComments = state.commentsByTicket[ticketId];
+            if (ticketComments) {
+                state.commentsByTicket[ticketId] = ticketComments.filter(
+                    (c) => c._id !== commentId
+                );
+            }
+        },
     },
     extraReducers: (builder) => {
         builder
@@ -145,5 +176,5 @@ const commentSlice = createSlice({
     },
 });
 
-export const { clearComments, clearTicketComments } = commentSlice.actions;
+export const { clearComments, clearTicketComments, addCommentFromSocket, updateCommentFromSocket, removeCommentFromSocket } = commentSlice.actions;
 export default commentSlice.reducer;
