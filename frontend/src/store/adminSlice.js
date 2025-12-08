@@ -1,33 +1,15 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
-
-const API_BASE_URL = "http://localhost:8000";
-
-// Helper to parse response
-const parseResponse = async (response) => {
-    try {
-        return await response.json();
-    } catch {
-        return {};
-    }
-};
+import api from "../utils/api";
 
 // Fetch all engineers
 export const fetchEngineers = createAsyncThunk(
     "admin/fetchEngineers",
     async (_, { rejectWithValue }) => {
         try {
-            const response = await fetch(`${API_BASE_URL}/api/v1/user/engineers`, {
-                method: "GET",
-                headers: { "Content-Type": "application/json" },
-                credentials: "include",
-            });
-            const data = await parseResponse(response);
-            if (!response.ok) {
-                return rejectWithValue(data?.message || "Failed to fetch engineers");
-            }
+            const { data } = await api.get("/api/v1/user/engineers");
             return data?.engineers || [];
         } catch (error) {
-            return rejectWithValue(error?.message || "Network error");
+            return rejectWithValue(error.response?.data?.message || "Failed to fetch engineers");
         }
     }
 );
@@ -37,18 +19,10 @@ export const fetchAllUsers = createAsyncThunk(
     "admin/fetchAllUsers",
     async (_, { rejectWithValue }) => {
         try {
-            const response = await fetch(`${API_BASE_URL}/api/v1/user/users`, {
-                method: "GET",
-                headers: { "Content-Type": "application/json" },
-                credentials: "include",
-            });
-            const data = await parseResponse(response);
-            if (!response.ok) {
-                return rejectWithValue(data?.message || "Failed to fetch users");
-            }
+            const { data } = await api.get("/api/v1/user/users");
             return data?.users || [];
         } catch (error) {
-            return rejectWithValue(error?.message || "Network error");
+            return rejectWithValue(error.response?.data?.message || "Failed to fetch users");
         }
     }
 );
@@ -58,18 +32,10 @@ export const fetchDashboardStats = createAsyncThunk(
     "admin/fetchDashboardStats",
     async (_, { rejectWithValue }) => {
         try {
-            const response = await fetch(`${API_BASE_URL}/api/v1/user/dashboard-stats`, {
-                method: "GET",
-                headers: { "Content-Type": "application/json" },
-                credentials: "include",
-            });
-            const data = await parseResponse(response);
-            if (!response.ok) {
-                return rejectWithValue(data?.message || "Failed to fetch stats");
-            }
+            const { data } = await api.get("/api/v1/user/dashboard-stats");
             return data?.stats || {};
         } catch (error) {
-            return rejectWithValue(error?.message || "Network error");
+            return rejectWithValue(error.response?.data?.message || "Failed to fetch stats");
         }
     }
 );
@@ -79,19 +45,10 @@ export const updateEngineer = createAsyncThunk(
     "admin/updateEngineer",
     async ({ userId, workloadScore, isOnline }, { rejectWithValue }) => {
         try {
-            const response = await fetch(`${API_BASE_URL}/api/v1/user/engineers/${userId}`, {
-                method: "PATCH",
-                headers: { "Content-Type": "application/json" },
-                credentials: "include",
-                body: JSON.stringify({ workloadScore, isOnline }),
-            });
-            const data = await parseResponse(response);
-            if (!response.ok) {
-                return rejectWithValue(data?.message || "Failed to update engineer");
-            }
+            const { data } = await api.patch(`/api/v1/user/engineers/${userId}`, { workloadScore, isOnline });
             return data?.user;
         } catch (error) {
-            return rejectWithValue(error?.message || "Network error");
+            return rejectWithValue(error.response?.data?.message || "Failed to update engineer");
         }
     }
 );

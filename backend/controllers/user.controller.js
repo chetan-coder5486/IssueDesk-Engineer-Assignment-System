@@ -1,6 +1,7 @@
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import User from '../models/user.model.js';
+import Ticket from '../models/ticket.model.js';
 import { generateAccess, generateRefresh } from '../utils/generateToken.js';
 
 const ACCESS_TOKEN_MAX_AGE = 15 * 60 * 1000; // 15 minutes
@@ -10,7 +11,7 @@ const isProduction = process.env.NODE_ENV === 'production';
 const buildCookieOptions = (maxAge) => ({
     httpOnly: true,
     secure: isProduction,
-    sameSite: 'strict',
+    sameSite: isProduction ? 'strict' : 'lax', // 'lax' needed for dev cross-origin requests
     maxAge,
 });
 
@@ -179,7 +180,43 @@ const getAllEngineers = async (req, res) => {
         const engineers = await User.find({ role: 'ENGINEER' })
             .select('name email department isOnline workloadScore skills')
             .sort({ workloadScore: 1, name: 1 });
-        return res.status(200).json({ engineers });
+
+        // Calculate actual workload from assigned tickets (active statuses only)
+        const engineerIds = engineers.map(e => e._id);
+        const workloadCounts = await Ticket.aggregate([
+            {
+                $match: {
+                    assignee: { $in: engineerIds },
+                    status: { $in: ['OPEN', 'ASSIGNED', 'IN_PROGRESS', 'PENDING_PARTS'] }
+                }
+            },
+            {
+                $group: {
+                    _id: '$assignee',
+                    count: { $sum: 1 }
+                }
+            }
+        ]);
+
+        // Create a map for quick lookup
+        const workloadMap = {};
+        workloadCounts.forEach(w => {
+            workloadMap[w._id.toString()] = w.count;
+        });
+
+        // Merge actual workload into engineer data
+        const engineersWithWorkload = engineers.map(engineer => {
+            const actualWorkload = workloadMap[engineer._id.toString()] || 0;
+            return {
+                ...engineer.toObject(),
+                workloadScore: actualWorkload // Override with actual count
+            };
+        });
+
+        // Sort by actual workload
+        engineersWithWorkload.sort((a, b) => a.workloadScore - b.workloadScore);
+
+        return res.status(200).json({ engineers: engineersWithWorkload });
     } catch (error) {
         console.error('Get engineers error:', error);
         return res.status(500).json({ message: 'Failed to fetch engineers' });
@@ -273,4 +310,59 @@ const getDashboardStats = async (req, res) => {
     }
 };
 
-export { signup, login, refresh, logout, getAllEngineers, getAllUsers, updateEngineerWorkload, getDashboardStats };
+// Sync all engineer workload scores based on actual assigned tickets
+const syncEngineerWorkloads = async (req, res) => {
+    try {
+        const engineers = await User.find({ role: 'ENGINEER' });
+
+        // Get actual workload counts from tickets (active statuses only)
+        const workloadCounts = await Ticket.aggregate([
+            {
+                $match: {
+                    status: { $in: ['OPEN', 'ASSIGNED', 'IN_PROGRESS', 'PENDING_PARTS'] }
+                }
+            },
+            {
+                $group: {
+                    _id: '$assignee',
+                    count: { $sum: 1 }
+                }
+            }
+        ]);
+
+        // Create a map for quick lookup
+        const workloadMap = {};
+        workloadCounts.forEach(w => {
+            if (w._id) {
+                workloadMap[w._id.toString()] = w.count;
+            }
+        });
+
+        // Update each engineer's workload score
+        const updates = [];
+        for (const engineer of engineers) {
+            const actualWorkload = workloadMap[engineer._id.toString()] || 0;
+            if (engineer.workloadScore !== actualWorkload) {
+                updates.push({
+                    engineerId: engineer._id,
+                    name: engineer.name,
+                    oldWorkload: engineer.workloadScore,
+                    newWorkload: actualWorkload
+                });
+                engineer.workloadScore = actualWorkload;
+                await engineer.save();
+            }
+        }
+
+        return res.status(200).json({
+            message: 'Workload scores synced successfully',
+            updatedEngineers: updates.length,
+            updates
+        });
+    } catch (error) {
+        console.error('Sync workloads error:', error);
+        return res.status(500).json({ message: 'Failed to sync workload scores' });
+    }
+};
+
+export { signup, login, refresh, logout, getAllEngineers, getAllUsers, updateEngineerWorkload, getDashboardStats, syncEngineerWorkloads };
