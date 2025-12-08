@@ -6,12 +6,15 @@ import HeroPage from './pages/HeroPage.jsx'
 import UserDashboard from './pages/UserDashboard.jsx'
 import Navbar from './pages/Navbar.jsx'
 import EngineerDashboard from './pages/EngineerDashboard.jsx'
-
+import Profile from './pages/profile.jsx'
 
 const appRouter =createBrowserRouter([
   {
     path:'/',
     element:<HeroPage />
+  },
+  {path:'/profile',
+  element:<Profile />
   },
   {
     path:'/login',
