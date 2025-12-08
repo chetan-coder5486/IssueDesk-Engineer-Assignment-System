@@ -13,6 +13,11 @@ import UserDashboard from "./pages/UserDashboard.jsx";
 import EngineerDashboard from "./pages/EngineerDashboard.jsx";
 import AdminDashboard from "./pages/AdminDashboard.jsx";
 import { forceLogout } from "./store/authSlice.js";
+import {
+  ProtectedRoute,
+  RoleBasedRoute,
+  PublicRoute,
+} from "./components/ProtectedRoute.jsx";
 
 // Root layout component that handles auth events
 function RootLayout() {
@@ -42,23 +47,43 @@ const appRouter = createBrowserRouter([
       },
       {
         path: "/login",
-        element: <Login />,
+        element: (
+          <PublicRoute>
+            <Login />
+          </PublicRoute>
+        ),
       },
       {
         path: "/signup",
-        element: <Signup />,
+        element: (
+          <PublicRoute>
+            <Signup />
+          </PublicRoute>
+        ),
       },
       {
         path: "/user-dashboard",
-        element: <UserDashboard />,
+        element: (
+          <RoleBasedRoute allowedRoles={["RANGER"]}>
+            <UserDashboard />
+          </RoleBasedRoute>
+        ),
       },
       {
         path: "/engineer-dashboard",
-        element: <EngineerDashboard />,
+        element: (
+          <RoleBasedRoute allowedRoles={["ENGINEER"]}>
+            <EngineerDashboard />
+          </RoleBasedRoute>
+        ),
       },
       {
         path: "/admin-dashboard",
-        element: <AdminDashboard />,
+        element: (
+          <RoleBasedRoute allowedRoles={["ADMIN"]}>
+            <AdminDashboard />
+          </RoleBasedRoute>
+        ),
       },
     ],
   },
