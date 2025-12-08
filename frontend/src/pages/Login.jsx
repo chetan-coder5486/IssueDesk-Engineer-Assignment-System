@@ -260,12 +260,12 @@ const Login = () => {
                   />{" "}
                   Remember Signal
                 </label>
-                <a
-                  href="#"
+                <Link
+                  to="/forgot-password"
                   className="text-pink-500 hover:text-pink-300 hover:shadow-[0_0_10px_#ec4899] transition-all"
                 >
                   Breached Protocol?
-                </a>
+                </Link>
               </div>
 
               <button

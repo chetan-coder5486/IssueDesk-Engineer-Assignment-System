@@ -37,14 +37,43 @@ export const logoutUser = createAsyncThunk(
     }
 );
 
+export const forgotPassword = createAsyncThunk(
+    'auth/forgotPassword',
+    async ({ email }, { rejectWithValue }) => {
+        try {
+            const { data } = await api.post('/api/v1/user/forgot-password', { email });
+            return data?.message || 'If an account exists, a reset link has been sent.';
+        } catch (error) {
+            return rejectWithValue(error.response?.data?.message || 'Failed to send reset email.');
+        }
+    }
+);
+
+export const resetPassword = createAsyncThunk(
+    'auth/resetPassword',
+    async ({ token, password, confirmPassword }, { rejectWithValue }) => {
+        try {
+            const url = `/api/v1/user/reset-password/${token}`;
+            const { data } = await api.post(url, { password, confirmPassword });
+            return data?.message || 'Password reset successful.';
+        } catch (error) {
+            return rejectWithValue(error.response?.data?.message || 'Failed to reset password.');
+        }
+    }
+);
+
 const initialState = {
     user: null,
     loginStatus: 'idle',
     signupStatus: 'idle',
     logoutStatus: 'idle',
+    forgotStatus: 'idle',
+    resetStatus: 'idle',
     loginError: null,
     signupError: null,
     logoutError: null,
+    forgotError: null,
+    resetError: null,
 };
 
 const authSlice = createSlice({
@@ -118,6 +147,30 @@ const authSlice = createSlice({
                 state.logoutStatus = 'failed';
                 state.logoutError = action.payload || 'Failed to logout.';
             });
+
+            builder
+                .addCase(forgotPassword.pending, (state) => {
+                    state.forgotStatus = 'loading';
+                    state.forgotError = null;
+                })
+                .addCase(forgotPassword.fulfilled, (state, action) => {
+                    state.forgotStatus = 'succeeded';
+                })
+                .addCase(forgotPassword.rejected, (state, action) => {
+                    state.forgotStatus = 'failed';
+                    state.forgotError = action.payload || 'Failed to send reset email.';
+                })
+                .addCase(resetPassword.pending, (state) => {
+                    state.resetStatus = 'loading';
+                    state.resetError = null;
+                })
+                .addCase(resetPassword.fulfilled, (state, action) => {
+                    state.resetStatus = 'succeeded';
+                })
+                .addCase(resetPassword.rejected, (state, action) => {
+                    state.resetStatus = 'failed';
+                    state.resetError = action.payload || 'Failed to reset password.';
+                });
     },
 });
 

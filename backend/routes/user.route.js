@@ -1,5 +1,5 @@
 import express from 'express';
-import { login, signup, logout, refresh, getAllEngineers, getAllUsers, updateEngineerWorkload, getDashboardStats, syncEngineerWorkloads } from '../controllers/user.controller.js';
+import { login, signup, logout, refresh, getAllEngineers, getAllUsers, updateEngineerWorkload, getDashboardStats, syncEngineerWorkloads, forgotPassword, resetPassword } from '../controllers/user.controller.js';
 import isAuthenticated from '../middlewares/isAuthenticated.js';
 
 const router = express.Router();
@@ -8,6 +8,8 @@ router.post('/signup', signup);
 router.post('/login', login);
 router.post('/refresh', refresh);
 router.get('/logout', logout);
+router.post('/forgot-password', forgotPassword);
+router.post('/reset-password/:token', resetPassword);
 
 // Admin routes (protected)
 router.get('/engineers', isAuthenticated, getAllEngineers);

@@ -12,6 +12,8 @@ import HeroPage from "./pages/HeroPage.jsx";
 import UserDashboard from "./pages/UserDashboard.jsx";
 import EngineerDashboard from "./pages/EngineerDashboard.jsx";
 import AdminDashboard from "./pages/AdminDashboard.jsx";
+import ForgotPassword from "./pages/ForgotPassword.jsx";
+import ResetPassword from "./pages/ResetPassword.jsx";
 import { forceLogout } from "./store/authSlice.js";
 
 // Root layout component that handles auth events
@@ -43,6 +45,14 @@ const appRouter = createBrowserRouter([
       {
         path: "/login",
         element: <Login />,
+      },
+      {
+        path: "/forgot-password",
+        element: <ForgotPassword />,
+      },
+      {
+        path: "/reset-password/:token",
+        element: <ResetPassword />,
       },
       {
         path: "/signup",

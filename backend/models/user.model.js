@@ -24,6 +24,10 @@ const UserSchema = new mongoose.Schema({
     workloadScore: { type: Number, default: 0 }, // Current active tickets count
 
     refreshToken: { type: String } // For session management
+    ,
+    // Password reset fields
+    resetPasswordToken: { type: String }, // hashed token (sha256)
+    resetPasswordExpires: { type: Date }
 }, { timestamps: true });
 
 export default mongoose.model('User', UserSchema);

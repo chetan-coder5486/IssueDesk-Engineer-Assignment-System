@@ -325,6 +325,12 @@ const Signup = () => {
                 Create Your Legacy
               </p>
             </div>
+            {/* Show server signup errors (e.g., email already used) */}
+            {error ? (
+              <div className="mb-4 p-3 rounded-lg bg-red-900/80 text-red-200 font-bold">
+                {error}
+              </div>
+            ) : null}
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="relative group">
