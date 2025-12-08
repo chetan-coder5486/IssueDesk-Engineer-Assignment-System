@@ -17,7 +17,14 @@ const Login = () => {
 
   useEffect(() => {
     if (loginStatus === "succeeded" && user) {
-      navigate("/user-dashboard");
+      // Role-based redirect
+      if (user.role === "ADMIN") {
+        navigate("/admin-dashboard");
+      } else if (user.role === "ENGINEER") {
+        navigate("/engineer-dashboard");
+      } else {
+        navigate("/user-dashboard");
+      }
     }
   }, [loginStatus, user, navigate]);
 

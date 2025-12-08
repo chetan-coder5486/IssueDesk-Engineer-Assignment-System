@@ -8,6 +8,7 @@ import {
   resetCreateStatus,
 } from "../store/ticketSlice.js";
 import Navbar from "./Navbar.jsx";
+import SLATimer from "../components/SLATimer.jsx";
 
 // Department color mapping
 const departmentColors = {
@@ -357,6 +358,9 @@ export default function UserDashboard() {
                         Priority
                       </th>
                       <th className="text-left py-3 px-4 text-xs text-gray-400 uppercase tracking-wider font-bold">
+                        SLA
+                      </th>
+                      <th className="text-left py-3 px-4 text-xs text-gray-400 uppercase tracking-wider font-bold">
                         Created
                       </th>
                       <th className="text-right py-3 px-4 text-xs text-gray-400 uppercase tracking-wider font-bold">
@@ -393,6 +397,14 @@ export default function UserDashboard() {
                           >
                             {issue.priority}
                           </span>
+                        </td>
+                        <td className="py-4 px-4">
+                          <SLATimer
+                            dueDate={issue.dueDate}
+                            status={issue.status}
+                            breached={issue.breached}
+                            size="sm"
+                          />
                         </td>
                         <td className="py-4 px-4 text-gray-400">
                           {formatDate(issue.createdAt)}
@@ -557,6 +569,12 @@ export default function UserDashboard() {
                   >
                     {selectedIssue.priority} Priority
                   </span>
+                  <SLATimer
+                    dueDate={selectedIssue.dueDate}
+                    status={selectedIssue.status}
+                    breached={selectedIssue.breached}
+                    size="md"
+                  />
                 </div>
               </div>
               <button

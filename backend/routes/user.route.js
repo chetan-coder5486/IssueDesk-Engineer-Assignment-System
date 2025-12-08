@@ -1,5 +1,5 @@
 import express from 'express';
-import { login, signup, logout, refresh, getAllEngineers, getAllUsers, updateEngineerWorkload, getDashboardStats } from '../controllers/user.controller.js';
+import { login, signup, logout, refresh, getAllEngineers, getAllUsers, updateEngineerWorkload, getDashboardStats, syncEngineerWorkloads } from '../controllers/user.controller.js';
 import isAuthenticated from '../middlewares/isAuthenticated.js';
 
 const router = express.Router();
@@ -14,5 +14,6 @@ router.get('/engineers', isAuthenticated, getAllEngineers);
 router.get('/users', isAuthenticated, getAllUsers);
 router.patch('/engineers/:userId', isAuthenticated, updateEngineerWorkload);
 router.get('/dashboard-stats', isAuthenticated, getDashboardStats);
+router.post('/sync-workloads', isAuthenticated, syncEngineerWorkloads);
 
 export default router;

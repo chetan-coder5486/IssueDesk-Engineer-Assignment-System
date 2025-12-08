@@ -13,6 +13,7 @@ import {
   deleteTicket,
 } from "../store/ticketSlice.js";
 import Navbar from "./Navbar.jsx";
+import SLATimer from "../components/SLATimer.jsx";
 
 // Department color mapping
 const departmentColors = {
@@ -140,25 +141,34 @@ export default function AdminDashboard() {
   );
 
   // Handle assign ticket
-  const handleAssignTicket = (engineerId) => {
+  const handleAssignTicket = async (engineerId) => {
     if (selectedTicket && engineerId) {
-      dispatch(
+      await dispatch(
         assignTicket({ ticketId: selectedTicket._id, assigneeId: engineerId })
       );
+      // Refresh engineers to update workload counts
+      dispatch(fetchEngineers());
+      dispatch(fetchDashboardStats());
       setShowAssignModal(false);
       setSelectedTicket(null);
     }
   };
 
   // Handle status update
-  const handleStatusUpdate = (ticketId, newStatus) => {
-    dispatch(updateTicketStatus({ ticketId, status: newStatus }));
+  const handleStatusUpdate = async (ticketId, newStatus) => {
+    await dispatch(updateTicketStatus({ ticketId, status: newStatus }));
+    // Refresh engineers to update workload counts
+    dispatch(fetchEngineers());
+    dispatch(fetchDashboardStats());
   };
 
   // Handle delete ticket
-  const handleDeleteTicket = (ticketId) => {
+  const handleDeleteTicket = async (ticketId) => {
     if (window.confirm("Are you sure you want to delete this ticket?")) {
-      dispatch(deleteTicket(ticketId));
+      await dispatch(deleteTicket(ticketId));
+      // Refresh engineers to update workload counts
+      dispatch(fetchEngineers());
+      dispatch(fetchDashboardStats());
       setShowTicketDetail(false);
       setSelectedTicket(null);
     }
@@ -590,6 +600,9 @@ export default function AdminDashboard() {
                           Status
                         </th>
                         <th className="text-left p-4 text-sm font-medium text-gray-400">
+                          SLA
+                        </th>
+                        <th className="text-left p-4 text-sm font-medium text-gray-400">
                           Created
                         </th>
                         <th className="text-left p-4 text-sm font-medium text-gray-400">
@@ -674,6 +687,14 @@ export default function AdminDashboard() {
                             >
                               {ticket.status.replace("_", " ")}
                             </span>
+                          </td>
+                          <td className="p-4">
+                            <SLATimer
+                              dueDate={ticket.dueDate}
+                              status={ticket.status}
+                              breached={ticket.breached}
+                              size="sm"
+                            />
                           </td>
                           <td className="p-4 text-sm text-gray-400">
                             {formatDate(ticket.createdAt)}
@@ -780,7 +801,7 @@ export default function AdminDashboard() {
                   Available Engineers
                 </h3>
                 <div className="space-y-3 max-h-[600px] overflow-y-auto scrollbar-thin">
-                  {engineers
+                  {[...engineers]
                     .filter((e) => e.isOnline)
                     .sort(
                       (a, b) => (a.workloadScore || 0) - (b.workloadScore || 0)
@@ -1017,7 +1038,7 @@ export default function AdminDashboard() {
               Select Engineer
             </h4>
             <div className="space-y-2 max-h-64 overflow-y-auto scrollbar-thin">
-              {engineers
+              {[...engineers]
                 .sort((a, b) => (a.workloadScore || 0) - (b.workloadScore || 0))
                 .map((eng) => (
                   <button
@@ -1072,7 +1093,7 @@ export default function AdminDashboard() {
             </div>
 
             <div className="space-y-4">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <span
                   className="status-badge"
                   style={getPriorityBadge(selectedTicket.priority)}
@@ -1085,6 +1106,12 @@ export default function AdminDashboard() {
                 >
                   {selectedTicket.status.replace("_", " ")}
                 </span>
+                <SLATimer
+                  dueDate={selectedTicket.dueDate}
+                  status={selectedTicket.status}
+                  breached={selectedTicket.breached}
+                  size="md"
+                />
                 <span className="text-sm text-gray-400">
                   {selectedTicket.category}
                 </span>

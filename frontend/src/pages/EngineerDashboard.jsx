@@ -7,6 +7,7 @@ import {
   updateTicketStatus,
 } from "../store/ticketSlice.js";
 import Navbar from "./Navbar.jsx";
+import SLATimer from "../components/SLATimer.jsx";
 
 // Department color mapping
 const departmentColors = {
@@ -298,7 +299,7 @@ export default function EngineerDashboard() {
                         Status
                       </th>
                       <th className="text-left py-3 px-4 text-xs text-gray-400 uppercase tracking-wider font-bold">
-                        Due Date
+                        SLA Timer
                       </th>
                       <th className="text-right py-3 px-4 text-xs text-gray-400 uppercase tracking-wider font-bold">
                         Actions
@@ -350,13 +351,13 @@ export default function EngineerDashboard() {
                             ))}
                           </select>
                         </td>
-                        <td className="py-4 px-4 text-gray-400">
-                          {formatDate(ticket.dueDate)}
-                          {ticket.breached && (
-                            <span className="ml-2 text-red-400 text-xs">
-                              ⚠️ SLA
-                            </span>
-                          )}
+                        <td className="py-4 px-4">
+                          <SLATimer
+                            dueDate={ticket.dueDate}
+                            status={ticket.status}
+                            breached={ticket.breached}
+                            size="sm"
+                          />
                         </td>
                         <td className="py-4 px-4 text-right">
                           <button
@@ -414,11 +415,12 @@ export default function EngineerDashboard() {
                   >
                     {selectedTicket.priority} Priority
                   </span>
-                  {selectedTicket.breached && (
-                    <span className="px-3 py-1 rounded-full text-xs font-bold bg-red-500/20 text-red-400 border border-red-500/30">
-                      SLA BREACHED
-                    </span>
-                  )}
+                  <SLATimer
+                    dueDate={selectedTicket.dueDate}
+                    status={selectedTicket.status}
+                    breached={selectedTicket.breached}
+                    size="md"
+                  />
                 </div>
               </div>
               <button

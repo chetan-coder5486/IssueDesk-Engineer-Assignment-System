@@ -1,33 +1,15 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
-
-const API_BASE_URL = "http://localhost:8000";
-
-// Helper to parse response
-const parseResponse = async (response) => {
-    try {
-        return await response.json();
-    } catch {
-        return {};
-    }
-};
+import api from "../utils/api";
 
 // Fetch all tickets (for admins/engineers)
 export const fetchAllTickets = createAsyncThunk(
     "tickets/fetchAllTickets",
     async (_, { rejectWithValue }) => {
         try {
-            const response = await fetch(`${API_BASE_URL}/api/v1/tickets`, {
-                method: "GET",
-                headers: { "Content-Type": "application/json" },
-                credentials: "include",
-            });
-            const data = await parseResponse(response);
-            if (!response.ok) {
-                return rejectWithValue(data?.message || "Failed to fetch tickets");
-            }
+            const { data } = await api.get("/api/v1/tickets");
             return data?.tickets || [];
         } catch (error) {
-            return rejectWithValue(error?.message || "Network error");
+            return rejectWithValue(error.response?.data?.message || "Failed to fetch tickets");
         }
     }
 );
@@ -37,18 +19,10 @@ export const fetchMyTickets = createAsyncThunk(
     "tickets/fetchMyTickets",
     async (_, { rejectWithValue }) => {
         try {
-            const response = await fetch(`${API_BASE_URL}/api/v1/tickets/my-tickets`, {
-                method: "GET",
-                headers: { "Content-Type": "application/json" },
-                credentials: "include",
-            });
-            const data = await parseResponse(response);
-            if (!response.ok) {
-                return rejectWithValue(data?.message || "Failed to fetch your tickets");
-            }
+            const { data } = await api.get("/api/v1/tickets/my-tickets");
             return data?.tickets || [];
         } catch (error) {
-            return rejectWithValue(error?.message || "Network error");
+            return rejectWithValue(error.response?.data?.message || "Failed to fetch your tickets");
         }
     }
 );
@@ -58,18 +32,10 @@ export const fetchAssignedTickets = createAsyncThunk(
     "tickets/fetchAssignedTickets",
     async (_, { rejectWithValue }) => {
         try {
-            const response = await fetch(`${API_BASE_URL}/api/v1/tickets/assigned`, {
-                method: "GET",
-                headers: { "Content-Type": "application/json" },
-                credentials: "include",
-            });
-            const data = await parseResponse(response);
-            if (!response.ok) {
-                return rejectWithValue(data?.message || "Failed to fetch assigned tickets");
-            }
+            const { data } = await api.get("/api/v1/tickets/assigned");
             return data?.tickets || [];
         } catch (error) {
-            return rejectWithValue(error?.message || "Network error");
+            return rejectWithValue(error.response?.data?.message || "Failed to fetch assigned tickets");
         }
     }
 );
@@ -79,19 +45,10 @@ export const createTicket = createAsyncThunk(
     "tickets/createTicket",
     async (ticketData, { rejectWithValue }) => {
         try {
-            const response = await fetch(`${API_BASE_URL}/api/v1/tickets`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                credentials: "include",
-                body: JSON.stringify(ticketData),
-            });
-            const data = await parseResponse(response);
-            if (!response.ok) {
-                return rejectWithValue(data?.message || "Failed to create ticket");
-            }
+            const { data } = await api.post("/api/v1/tickets", ticketData);
             return data?.ticket;
         } catch (error) {
-            return rejectWithValue(error?.message || "Network error");
+            return rejectWithValue(error.response?.data?.message || "Failed to create ticket");
         }
     }
 );
@@ -101,19 +58,10 @@ export const updateTicketStatus = createAsyncThunk(
     "tickets/updateTicketStatus",
     async ({ ticketId, status }, { rejectWithValue }) => {
         try {
-            const response = await fetch(`${API_BASE_URL}/api/v1/tickets/${ticketId}/status`, {
-                method: "PATCH",
-                headers: { "Content-Type": "application/json" },
-                credentials: "include",
-                body: JSON.stringify({ status }),
-            });
-            const data = await parseResponse(response);
-            if (!response.ok) {
-                return rejectWithValue(data?.message || "Failed to update ticket");
-            }
+            const { data } = await api.patch(`/api/v1/tickets/${ticketId}/status`, { status });
             return data?.ticket;
         } catch (error) {
-            return rejectWithValue(error?.message || "Network error");
+            return rejectWithValue(error.response?.data?.message || "Failed to update ticket");
         }
     }
 );
@@ -123,19 +71,10 @@ export const assignTicket = createAsyncThunk(
     "tickets/assignTicket",
     async ({ ticketId, assigneeId }, { rejectWithValue }) => {
         try {
-            const response = await fetch(`${API_BASE_URL}/api/v1/tickets/${ticketId}/assign`, {
-                method: "PATCH",
-                headers: { "Content-Type": "application/json" },
-                credentials: "include",
-                body: JSON.stringify({ assigneeId }),
-            });
-            const data = await parseResponse(response);
-            if (!response.ok) {
-                return rejectWithValue(data?.message || "Failed to assign ticket");
-            }
+            const { data } = await api.patch(`/api/v1/tickets/${ticketId}/assign`, { assigneeId });
             return data?.ticket;
         } catch (error) {
-            return rejectWithValue(error?.message || "Network error");
+            return rejectWithValue(error.response?.data?.message || "Failed to assign ticket");
         }
     }
 );
@@ -145,18 +84,10 @@ export const deleteTicket = createAsyncThunk(
     "tickets/deleteTicket",
     async (ticketId, { rejectWithValue }) => {
         try {
-            const response = await fetch(`${API_BASE_URL}/api/v1/tickets/${ticketId}`, {
-                method: "DELETE",
-                headers: { "Content-Type": "application/json" },
-                credentials: "include",
-            });
-            const data = await parseResponse(response);
-            if (!response.ok) {
-                return rejectWithValue(data?.message || "Failed to delete ticket");
-            }
+            await api.delete(`/api/v1/tickets/${ticketId}`);
             return ticketId;
         } catch (error) {
-            return rejectWithValue(error?.message || "Network error");
+            return rejectWithValue(error.response?.data?.message || "Failed to delete ticket");
         }
     }
 );
