@@ -1,0 +1,85 @@
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap');
+
+.hero-container {
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: radial-gradient(circle at top, #0d1126, #05060f 60%);
+  position: relative;
+  color: white;
+  font-family: 'Orbitron', sans-serif;
+}
+
+.hero-stars {
+  position: absolute;
+  inset: 0;
+  background: url("https://m.media-amazon.com/images/M/MV5BOTA1ZmZkZDUtMTQ0ZC00MWEzLWJlNWUtNGVlZjhkMTQ2NDUwXkEyXkFqcGc@._V1_QL75_UX582_.jpg");
+  opacity: 0.15;
+  background-size: cover;
+}
+
+.hero-content {
+  text-align: center;
+  z-index: 3;
+  padding: 20px;
+}
+
+.hero-title {
+  font-size: 3.5rem;
+  font-weight: 700;
+  letter-spacing: 4px;
+  background: linear-gradient(90deg, #00eaff, #a020f0);
+  background-clip: text;
+  color: transparent;
+  text-transform: uppercase;
+}
+
+.hero-subtitle {
+  font-size: 1.3rem;
+  margin-top: 10px;
+  color: #00eaff;
+  letter-spacing: 3px;
+}
+
+.hero-text {
+  max-width: 650px;
+  margin: 20px auto;
+  font-size: 1.1rem;
+  color: #c2c8ff;
+  line-height: 1.6;
+}
+
+.hero-btn {
+  margin-top: 30px;
+  padding: 15px 40px;
+  font-size: 1rem;
+  color: white;
+  letter-spacing: 2px;
+  border: none;
+  cursor: pointer;
+  border-radius: 10px;
+  text-transform: uppercase;
+  background: linear-gradient(90deg, #007bff, #a020f0);
+  box-shadow: 0 0 20px rgba(160, 32, 240, 0.6),
+              0 0 40px rgba(0, 123, 255, 0.4);
+  transition: 0.3s;
+}
+
+.hero-btn:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 30px rgba(160, 32, 240, 0.9),
+              0 0 60px rgba(0, 123, 255, 0.7);
+}
+
+.hero-glow {
+  position: absolute;
+  width: 700px;
+  height: 700px;
+  background: radial-gradient(circle, rgba(160, 32, 240, 0.4), transparent);
+  filter: blur(80px);
+  z-index: 1;
+  opacity: 0.4;
+}

@@ -1,4 +1,12 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
+import {
+  clearSignupError,
+  resetSignupStatus,
+  setSignupError,
+  signupUser,
+} from "../store/authSlice.js";
 
 const Signup = () => {
   const [loading, setLoading] = useState(false);
@@ -8,12 +16,25 @@ const Signup = () => {
 
   // Form State
   const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    role: 'Ranger',
-    pass1: '',
-    pass2: ''
+    codeName: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
+    rangerColor: "red",
   });
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const { signupStatus, signupError } = useSelector((state) => state.auth);
+
+  const loading = signupStatus === "loading";
+  const error = signupError;
+
+  useEffect(() => {
+    if (signupStatus === "succeeded") {
+      navigate("/login");
+      dispatch(resetSignupStatus());
+    }
+  }, [signupStatus, navigate, dispatch]);
 
   // Colors Configuration
   const colors = [
@@ -43,44 +64,38 @@ const Signup = () => {
   };
 
   const handleChange = (e) => {
-    const { id, value } = e.target;
-    setFormData({ ...formData, [id]: value });
-
-    // Live Validation for Password Field
-    if (id === 'pass1') {
-        if (!validatePassword(value)) {
-            setPasswordError('INVALID SECURITY KEY (Follow Rules)');
-        } else {
-            setPasswordError('');
-        }
+    setFormData({ ...formData, [e.target.id]: e.target.value });
+    if (error) {
+      dispatch(clearSignupError());
     }
   };
 
-  const handleColorSelect = (hex) => {
-    setSelectedColor(hex);
+  const handleColorSelect = (color) => {
+    setFormData({ ...formData, rangerColor: color });
+    if (error) {
+      dispatch(clearSignupError());
+    }
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    
-    // Strict Validation Check
-    if (passwordError || !validatePassword(formData.pass1)) {
-        alert("ACCESS DENIED: Invalid Security Key Format.");
-        return;
-    }
-
-    if (formData.pass1 !== formData.pass2) {
-      alert("SECURITY ALERT: Passwords do not match!");
+    if (formData.password !== formData.confirmPassword) {
+      dispatch(
+        setSignupError("Security key mismatch. Please confirm your password.")
+      );
       return;
     }
 
-    setLoading(true);
-
-    setTimeout(() => {
-      let welcomeMsg = `RECRUITMENT SUCCESSFUL! WELCOME TO THE ${colors.find(c => c.hex === selectedColor)?.name.toUpperCase()} TEAM AS A ${formData.role.toUpperCase()}.`;
-      alert(welcomeMsg);
-      setLoading(false);
-    }, 2000);
+    dispatch(
+      signupUser({
+        name: formData.codeName.trim(),
+        email: formData.email.trim().toLowerCase(),
+        password: formData.password,
+        confirmPassword: formData.confirmPassword,
+        role: "RANGER",
+        department: formData.rangerColor.toUpperCase(),
+      })
+    );
   };
 
   return (
@@ -185,11 +200,24 @@ const Signup = () => {
                         <path strokeLinecap="round" strokeLinejoin="round" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 013 12c0-1.605.42-3.113 1.157-4.418" />
                     </svg>
                 </div>
+                <div className="relative group">
+                  <input
+                    id="email"
+                    type="email"
+                    placeholder="NEURAL LINK (EMAIL)"
+                    value={formData.email}
+                    onChange={handleChange}
+                    required
+                    className="w-full p-4 bg-gray-900 text-white rounded-lg border border-gray-700 focus:outline-none glow-input transition-all placeholder-gray-600 font-bold tracking-wider text-sm"
+                  />
+                </div>
+              </div>
 
                 <div className="mb-8">
                     <h3 className="text-3xl font-bold text-white mb-2 tracking-wide">INITIALIZE SIGNUP</h3>
                     <p className="dynamic-text uppercase tracking-[0.2em] text-sm font-bold">Create Your Legacy</p>
                 </div>
+              </div>
 
                 <form onSubmit={handleSubmit} className="space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
