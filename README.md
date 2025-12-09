@@ -264,6 +264,25 @@ SLA timers automatically calculate due dates and track breaches.
 
 ---
 
+## 📸 Screenshots
+
+### Login Page
+<img width="1920" height="1080" alt="Screenshot 2025-12-09 095502" src="https://github.com/user-attachments/assets/96a265d0-d4ac-49e5-8c4c-bdc8480de63c" />
+
+
+### User Dashboard
+<img width="1899" height="911" alt="image" src="https://github.com/user-attachments/assets/6d31be83-600d-43d4-9e08-49a138b07134" />
+
+
+### Admin Dashboard
+<img width="1894" height="916" alt="image" src="https://github.com/user-attachments/assets/42ba9552-439e-4541-8cdb-f5e3d567b08b" />
+
+
+### Engineer Dashboard
+<img width="1895" height="908" alt="image" src="https://github.com/user-attachments/assets/c5a8d69b-8b08-4caa-8fc8-2ba26e22eee5" />
+
+---
+
 ## 🔒 Error Handling & Reliability
 
 - ✅ JWT token expiration with automatic refresh
