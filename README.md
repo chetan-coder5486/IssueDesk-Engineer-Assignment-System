@@ -269,6 +269,10 @@ SLA timers automatically calculate due dates and track breaches.
 ### Login Page
 <img width="1920" height="1080" alt="Screenshot 2025-12-09 095502" src="https://github.com/user-attachments/assets/96a265d0-d4ac-49e5-8c4c-bdc8480de63c" />
 
+### SignUp Page
+<img width="1892" height="1003" alt="Signup" src="https://github.com/user-attachments/assets/d6e55d9b-7066-4d31-a25c-68e11fdddf2c" />
+
+
 
 ### User Dashboard
 <img width="1899" height="911" alt="image" src="https://github.com/user-attachments/assets/6d31be83-600d-43d4-9e08-49a138b07134" />
@@ -347,11 +351,11 @@ IssueDesk-Engineer-Assignment-System/
 
 ## 👥 Team Members
 
-| Name   | Role                 | Responsibilities                                                |
-| Chetan | Full Stack Developer | Authentication, Dashboards, Real-time Features, API Development |
-| Pawan |Frontend Developer | Dashboards, nodemailer, Forgot Password |
-| Jivit |UI Designer | Designed login,signup and dashboard and profile pages|
-| Amit |Frontend Developer | Navbar, UserDashboard |
+| Name   | Role                 | Responsibilities                                                |<br>
+| Chetan | Full Stack Developer | Authentication, Dashboards, Real-time Features, API Development |<br>
+| Pawan |Frontend Developer | Dashboards, nodemailer, Forgot Password |<br>
+| Jivit |UI Designer | Designed login,signup and dashboard and profile pages|<br>
+| Amit |Frontend Developer | Navbar, UserDashboard |<br>
 
 
 ---
