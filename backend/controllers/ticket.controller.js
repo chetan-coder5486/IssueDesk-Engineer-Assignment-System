@@ -3,16 +3,70 @@ import Ticket from "../models/ticket.model.js";
 import { calculateDueDate, isBreached } from "../models/sla.model.js";
 import { sendMail } from "../utils/email.js";
 
+// ==================== ROLE-BASED ACCESS HELPERS ====================
+
+/**
+ * Check if user can access a specific ticket
+ * - ADMIN: Can access all tickets
+ * - ENGINEER: Can access tickets assigned to them
+ * - RANGER: Can access tickets they reported
+ */
+const canAccessTicket = (user, ticket) => {
+    if (user.role === 'ADMIN') return true;
+    if (user.role === 'ENGINEER' && ticket.assignee?.toString() === user.id.toString()) return true;
+    if (user.role === 'RANGER' && ticket.reporter?.toString() === user.id.toString()) return true;
+    return false;
+};
+
+/**
+ * Check if user can modify ticket status
+ * - ADMIN: Can modify any ticket status
+ * - ENGINEER: Can modify status of tickets assigned to them
+ * - RANGER: Cannot modify status (only view)
+ */
+const canModifyTicketStatus = (user, ticket) => {
+    if (user.role === 'ADMIN') return true;
+    if (user.role === 'ENGINEER' && ticket.assignee?.toString() === user.id.toString()) return true;
+    return false;
+};
+
+/**
+ * Check if user can delete a ticket
+ * - ADMIN: Can delete any ticket
+ * - RANGER: Can delete their own ticket ONLY if status is OPEN
+ * - ENGINEER: Cannot delete tickets
+ */
+const canDeleteTicket = (user, ticket) => {
+    if (user.role === 'ADMIN') return true;
+    if (user.role === 'RANGER' &&
+        ticket.reporter?.toString() === user.id.toString() &&
+        ticket.status === 'OPEN') return true;
+    return false;
+};
+
+// ==================== TICKET CONTROLLERS ====================
+
 export const createTicket = async (req, res) => {
     try {
-        const userId = req.user.id; // Assuming user ID is available in req.user
+        const userId = req.user.id;
+        const userRole = req.user.role;
+
+        // Only RANGER and ADMIN can create tickets
+        if (!['RANGER', 'ADMIN'].includes(userRole)) {
+            return res.status(403).json({
+                message: 'Access denied. Only Rangers and Admins can create tickets.',
+                success: false
+            });
+        }
+
         const { title, description, priority, category } = req.body;
         if (!title) {
-            return res.status(400).json({ message: 'Title is required' });
+            return res.status(400).json({ message: 'Title is required', success: false });
         }
+
         const user = await User.findById(userId);
         if (!user) {
-            return res.status(404).json({ message: 'User not found' });
+            return res.status(404).json({ message: 'User not found', success: false });
         }
 
         const ticketPriority = priority || 'MEDIUM';
@@ -31,9 +85,13 @@ export const createTicket = async (req, res) => {
         // Populate reporter for response
         await newTicket.populate('reporter');
 
-        return res.status(201).json({ message: 'Ticket created successfully', ticket: newTicket });
+        return res.status(201).json({
+            message: 'Ticket created successfully',
+            ticket: newTicket,
+            success: true
+        });
     } catch (error) {
-        return res.status(500).json({ message: 'Server error', error: error.message });
+        return res.status(500).json({ message: 'Server error', error: error.message, success: false });
     }
 }
 
@@ -55,12 +113,22 @@ const checkBreachStatus = async (tickets) => {
 
 export const getAllTickets = async (req, res) => {
     try {
+        const userRole = req.user.role;
+
+        // Only ADMIN can get all tickets
+        if (userRole !== 'ADMIN') {
+            return res.status(403).json({
+                message: 'Access denied. Only Admins can view all tickets.',
+                success: false
+            });
+        }
+
         const tickets = await Ticket.find().populate('reporter assignee');
         // Check and update breach status
         await checkBreachStatus(tickets);
-        return res.status(200).json({ tickets });
+        return res.status(200).json({ tickets, success: true });
     } catch (error) {
-        return res.status(500).json({ message: 'Server error', error: error.message });
+        return res.status(500).json({ message: 'Server error', error: error.message, success: false });
     }
 }
 
@@ -68,38 +136,69 @@ export const getTicketById = async (req, res) => {
     try {
         const ticketId = req.params.id;
         const ticket = await Ticket.findById(ticketId).populate('reporter assignee');
+
         if (!ticket) {
-            return res.status(404).json({ message: 'Ticket not found' });
+            return res.status(404).json({ message: 'Ticket not found', success: false });
         }
+
+        // Check access permissions
+        if (!canAccessTicket(req.user, ticket)) {
+            return res.status(403).json({
+                message: 'Access denied. You can only view tickets you reported or are assigned to.',
+                success: false
+            });
+        }
+
         // Check and update breach status
         await checkBreachStatus([ticket]);
-        return res.status(200).json({ ticket });
+        return res.status(200).json({ ticket, success: true });
     } catch (error) {
-        return res.status(500).json({ message: 'Server error', error: error.message });
+        return res.status(500).json({ message: 'Server error', error: error.message, success: false });
     }
 }
 
 export const getTicketByReporter = async (req, res) => {
     try {
-        const userId = req.user.id; // Assuming user ID is available in req.user
+        const userId = req.user.id;
+        const userRole = req.user.role;
+
+        // Only RANGER and ADMIN can access this endpoint
+        // (Engineers don't "report" tickets, they're assigned to them)
+        if (!['RANGER', 'ADMIN'].includes(userRole)) {
+            return res.status(403).json({
+                message: 'Access denied. This endpoint is for Rangers.',
+                success: false
+            });
+        }
+
         const tickets = await Ticket.find({ reporter: userId }).populate('reporter assignee');
         // Check and update breach status
         await checkBreachStatus(tickets);
-        return res.status(200).json({ tickets });
+        return res.status(200).json({ tickets, success: true });
     } catch (error) {
-        return res.status(500).json({ message: 'Server error', error: error.message });
+        return res.status(500).json({ message: 'Server error', error: error.message, success: false });
     }
 }
 
 export const getTicketByAssignee = async (req, res) => {
     try {
-        const userId = req.user.id; // Assuming user ID is available in req.user    
+        const userId = req.user.id;
+        const userRole = req.user.role;
+
+        // Only ENGINEER and ADMIN can access assigned tickets
+        if (!['ENGINEER', 'ADMIN'].includes(userRole)) {
+            return res.status(403).json({
+                message: 'Access denied. This endpoint is for Engineers.',
+                success: false
+            });
+        }
+
         const tickets = await Ticket.find({ assignee: userId }).populate('reporter assignee');
         // Check and update breach status
         await checkBreachStatus(tickets);
-        return res.status(200).json({ tickets });
+        return res.status(200).json({ tickets, success: true });
     } catch (error) {
-        return res.status(500).json({ message: 'Server error', error: error.message });
+        return res.status(500).json({ message: 'Server error', error: error.message, success: false });
     }
 }
 
@@ -107,10 +206,44 @@ export const updateTicketStatus = async (req, res) => {
     try {
         const ticketId = req.params.id;
         const { status } = req.body;
+        const userRole = req.user.role;
+
+        // Validate status value
+        const validStatuses = ['OPEN', 'ASSIGNED', 'IN_PROGRESS', 'PENDING_PARTS', 'RESOLVED', 'CLOSED'];
+        if (!validStatuses.includes(status)) {
+            return res.status(400).json({
+                message: `Invalid status. Must be one of: ${validStatuses.join(', ')}`,
+                success: false
+            });
+        }
 
         const ticket = await Ticket.findById(ticketId);
         if (!ticket) {
-            return res.status(404).json({ message: 'Ticket not found' });
+            return res.status(404).json({ message: 'Ticket not found', success: false });
+        }
+
+        // Check if user can modify this ticket's status
+        if (!canModifyTicketStatus(req.user, ticket)) {
+            return res.status(403).json({
+                message: 'Access denied. Only the assigned engineer or an admin can update ticket status.',
+                success: false
+            });
+        }
+
+        // Additional validation: Rangers cannot update status at all
+        if (userRole === 'RANGER') {
+            return res.status(403).json({
+                message: 'Access denied. Rangers cannot update ticket status.',
+                success: false
+            });
+        }
+
+        // Prevent setting to ASSIGNED without an assignee
+        if (status === 'ASSIGNED' && !ticket.assignee) {
+            return res.status(400).json({
+                message: 'Cannot set status to ASSIGNED without an assignee.',
+                success: false
+            });
         }
 
         const previousStatus = ticket.status;
@@ -132,9 +265,13 @@ export const updateTicketStatus = async (req, res) => {
         }
 
         await ticket.populate('reporter assignee');
-        return res.status(200).json({ message: 'Ticket status updated successfully', ticket });
+        return res.status(200).json({
+            message: 'Ticket status updated successfully',
+            ticket,
+            success: true
+        });
     } catch (error) {
-        return res.status(500).json({ message: 'Server error', error: error.message });
+        return res.status(500).json({ message: 'Server error', error: error.message, success: false });
     }
 }
 
@@ -142,13 +279,39 @@ export const assignTicket = async (req, res) => {
     try {
         const ticketId = req.params.id;
         const { assigneeId } = req.body;
+        const userRole = req.user.role;
+
+        // Only ADMIN can assign tickets
+        if (userRole !== 'ADMIN') {
+            return res.status(403).json({
+                message: 'Access denied. Only Admins can assign tickets.',
+                success: false
+            });
+        }
+
+        if (!assigneeId) {
+            return res.status(400).json({
+                message: 'Assignee ID is required.',
+                success: false
+            });
+        }
+
         const ticket = await Ticket.findById(ticketId);
         if (!ticket) {
-            return res.status(404).json({ message: 'Ticket not found' });
+            return res.status(404).json({ message: 'Ticket not found', success: false });
         }
+
         const assignee = await User.findById(assigneeId);
         if (!assignee) {
-            return res.status(404).json({ message: 'Assignee user not found' });
+            return res.status(404).json({ message: 'Assignee user not found', success: false });
+        }
+
+        // Verify assignee is an ENGINEER
+        if (assignee.role !== 'ENGINEER') {
+            return res.status(400).json({
+                message: 'Tickets can only be assigned to Engineers.',
+                success: false
+            });
         }
 
         // If previously assigned to someone else, decrement their workload
@@ -192,9 +355,13 @@ export const assignTicket = async (req, res) => {
             console.error('Email send error:', mailErr);
         }
 
-        return res.status(200).json({ message: 'Ticket assigned successfully', ticket });
+        return res.status(200).json({
+            message: 'Ticket assigned successfully',
+            ticket,
+            success: true
+        });
     } catch (error) {
-        return res.status(500).json({ message: 'Server error', error: error.message });
+        return res.status(500).json({ message: 'Server error', error: error.message, success: false });
     }
 }
 
@@ -202,8 +369,37 @@ export const deleteTicket = async (req, res) => {
     try {
         const ticketId = req.params.id;
         const ticket = await Ticket.findById(ticketId);
+
         if (!ticket) {
-            return res.status(404).json({ message: 'Ticket not found' });
+            return res.status(404).json({ message: 'Ticket not found', success: false });
+        }
+
+        // Check if user can delete this ticket
+        if (!canDeleteTicket(req.user, ticket)) {
+            // Provide specific error message based on role
+            if (req.user.role === 'RANGER') {
+                if (ticket.reporter?.toString() !== req.user.id.toString()) {
+                    return res.status(403).json({
+                        message: 'Access denied. You can only delete your own tickets.',
+                        success: false
+                    });
+                } else {
+                    return res.status(403).json({
+                        message: 'Access denied. You can only delete tickets that are still OPEN.',
+                        success: false
+                    });
+                }
+            }
+            if (req.user.role === 'ENGINEER') {
+                return res.status(403).json({
+                    message: 'Access denied. Engineers cannot delete tickets.',
+                    success: false
+                });
+            }
+            return res.status(403).json({
+                message: 'Access denied. You do not have permission to delete this ticket.',
+                success: false
+            });
         }
 
         // Decrement workload if ticket was assigned and not resolved/closed
@@ -212,14 +408,24 @@ export const deleteTicket = async (req, res) => {
         }
 
         await Ticket.findByIdAndDelete(ticketId);
-        return res.status(200).json({ message: 'Ticket deleted successfully' });
+        return res.status(200).json({ message: 'Ticket deleted successfully', success: true });
     } catch (error) {
-        return res.status(500).json({ message: 'Server error', error: error.message });
+        return res.status(500).json({ message: 'Server error', error: error.message, success: false });
     }
 }
 
 export const sendDeadlineNotifications = async (req, res) => {
     try {
+        const userRole = req.user.role;
+
+        // Only ADMIN can trigger deadline notifications
+        if (userRole !== 'ADMIN') {
+            return res.status(403).json({
+                message: 'Access denied. Only Admins can trigger deadline notifications.',
+                success: false
+            });
+        }
+
         // configurable window (hours) from request or default 24 hours
         const hoursWindow = req.body.hours || 24;
         const now = new Date();
@@ -253,9 +459,13 @@ export const sendDeadlineNotifications = async (req, res) => {
             }
         }
 
-        return res.status(200).json({ message: 'Deadline notifications processed', results });
+        return res.status(200).json({
+            message: 'Deadline notifications processed',
+            results,
+            success: true
+        });
     } catch (error) {
-        return res.status(500).json({ message: 'Server error', error: error.message });
+        return res.status(500).json({ message: 'Server error', error: error.message, success: false });
     }
 }
 
